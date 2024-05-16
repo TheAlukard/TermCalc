@@ -318,6 +318,8 @@ void test()
     char ex_7[] = "3 + 5 / 3 ^ 4 * 9 - 2 * 1";
     char ex_8[] = "3 + 3 + 3 + 3 + 3 ^ 0 + 3";
     char ex_9[] = "1 / 0.3 - 0.1 * 3 ^ 2";
+    char ex_10[] = "0 / 2 * 1";
+    char ex_11[] = "0/1*2";
 
     expected(ex_0, 23);
     expected(ex_1, 15);
@@ -329,103 +331,39 @@ void test()
     expected(ex_7, 1.55555555555556);
     expected(ex_8, 16);
     expected(ex_9, 2.43333333333333);
+    expected(ex_10, 0);
+    expected(ex_11, 0);
 }
 
 int main(void)
 {
+#if 0
     test(); 
-
     return 0;
+#endif
 
     char buffer[1000];
     const size_t buffer_count = array_len(buffer);
-    memset(buffer, 0, buffer_count * sizeof(char));
-    fgets(buffer, buffer_count, stdin);
 
-    Math math;
-    list_alloc(math.num_list);
-    list_alloc(math.oper_list);
-    Parser parser = {.math = math, .expr = buffer};
-
-    parse_input(buffer, buffer_count, &parser.math); 
-
-    parse_expression(&parser);
-
-    double result;
-
-    result = parser.math.num_list.items[0];
-
-    for (size_t i = 1; i < parser.math.num_list.count; i++) {
-        printf("(%lf %c %lf)\n", result, parser.math.oper_list.items[i - 1], parser.math.num_list.items[i]);
-        result = perform_operation(result, parser.math.num_list.items[i], parser.math.oper_list.items[i - 1]);
-    }
-
-    printf("%lf\n", do_the_math(parser.math));
-
-    return 0;
-
-    // for (size_t i = 1; i < math.num_list.count; i++) {
-    //     printf("(%lf %c %lf)\n", result, math.oper_list.items[i - 1], math.num_list.items[i]);
-    //     result = perform_operation(result, math.num_list.items[i], math.oper_list.items[i - 1]);
-    // }
-
-    Math new1;
-    list_alloc(new1.num_list);
-    list_alloc(new1.oper_list);
-
-    //3 + 7 / 5 * 3
-
-    bool yes = false;
-
-    for (size_t i = 0; i < math.num_list.count - 1; i++) {
-        if (math.oper_list.items[i] == '*' || math.oper_list.items[i] == '/') {
-            double num;
-            if (! yes) {
-                num = math.num_list.items[i];
-                yes = true;
-            }
-            else {
-                num = result;
-            }
-            result = perform_operation(num, math.num_list.items[i + 1], math.oper_list.items[i]);
-
-            if (i == math.num_list.count - 2) {
-                list_append(new1.num_list, result);
-            }
-        }
-        else {
-            list_append(new1.num_list, math.num_list.items[i]);
-            list_append(new1.oper_list, math.oper_list.items[i]);
-            if (yes) list_append(new1.num_list, result);
-        }
-    }
-
-    printf("%zu, %zu\n", new1.num_list.count, new1.oper_list.count);
-    printf("%lf\n", result);
-
-    result = new1.num_list.items[0];
-
-    for (size_t i = 1; i < new1.num_list.count; i++) {
-        printf("(%lf %c %lf)\n", result, new1.oper_list.items[i - 1], new1.num_list.items[i]);
-        result = perform_operation(result, new1.num_list.items[i], new1.oper_list.items[i - 1]);
-    }
-
-    // parse_expression(&parser);
-
-    return 0;
-
+    Parser parser;
+    list_alloc(parser.math.num_list);
+    list_alloc(parser.math.oper_list);
+    
     while (true)
     {
         memset(buffer, 0, buffer_count * sizeof(char));
         fgets(buffer, buffer_count, stdin);
-        buffer[buffer_count - 1] = '\0';
+        parser.expr = buffer;
 
-        parse_input(buffer, buffer_count, &math); 
+        parse_input(buffer, buffer_count, &parser.math); 
+        parse_expression(&parser);
 
-        printf("Result: %lf\n", do_the_math(math));
+        double result = do_the_math(parser.math);
 
-        list_clear(math.num_list);
-        list_clear(math.oper_list);
+        printf("Result: %lf\n", result);
+
+        list_clear(parser.math.num_list);
+        list_clear(parser.math.oper_list);
     }
 
     return 0;

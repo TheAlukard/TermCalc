@@ -283,12 +283,12 @@ bool expected(char* input, double expected_output)
     list_alloc(parser.math.oper_list);
     parse_input(input, strlen(input) + 1, &parser.math);
 
-    for (size_t i = 0; i < parser.math.num_list.count; i++) {
-        printf("%lf ",parser.math.num_list.items[i]);
-        if (i < parser.math.oper_list.count) {
-            printf("%c ", parser.math.oper_list.items[i]);
-        }
-    }
+    // for (size_t i = 0; i < parser.math.num_list.count; i++) {
+    //     printf("%lf ",parser.math.num_list.items[i]);
+    //     if (i < parser.math.oper_list.count) {
+    //         printf("%c ", parser.math.oper_list.items[i]);
+    //     }
+    // }
 
     parse_expression(&parser);
     double output = do_the_math(parser.math);
@@ -314,10 +314,10 @@ void test()
     char ex_3[] = "1 + 3 *  9";
     char ex_4[] = "64 ^ 0 / 2 + 6";
     char ex_5[] = "4 ^ 2 / 8 + 1";
-    char ex_6[] = "";
-    char ex_7[] = "";
-    char ex_8[] = "";
-    char ex_9[] = "";
+    char ex_6[] = "1 / 0.5 + 6";
+    char ex_7[] = "3 + 5 / 3 ^ 4 * 9 - 2 * 1";
+    char ex_8[] = "3 + 3 + 3 + 3 + 3 ^ 0 + 3";
+    char ex_9[] = "1 / 0.3 - 0.1 * 3 ^ 2";
 
     expected(ex_0, 23);
     expected(ex_1, 15);
@@ -325,6 +325,10 @@ void test()
     expected(ex_3, 28);
     expected(ex_4, 6.5f); 
     expected(ex_5, 3);
+    expected(ex_6, 8);
+    expected(ex_7, 1.55555555555556);
+    expected(ex_8, 16);
+    expected(ex_9, 2.43333333333333);
 }
 
 int main(void)

@@ -143,7 +143,7 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
 
         char current = *position;
 
-        if (isdigit(current)) {//    3 + 3
+        if (isdigit(current) || current == '.') {
             count += 1;
         }
 
@@ -153,8 +153,9 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
                 exit(1);
             }
 
-            char temp[count];
+            char temp[count + 1];
             memcpy(temp, buffer, count * sizeof(char));
+            temp[count] = '\0';
             char *end;
             double num = strtod(temp, &end);
 
@@ -307,13 +308,23 @@ bool expected(char* input, double expected_output)
 
 void test()
 {
-    char ex_1[] = "3 * 7 + 46 % 4";
-    char ex_2[] = "5 * 2 ^ 3 / 4 + 1 * 5";
-    char ex_3[] = "5 * 2 ^ 3 ^ 4 + 1 + 79";
+    char ex_0[] = "3 * 7 + 46 % 4";
+    char ex_1[] = "5 * 2 ^ 3 / 4 + 1 * 5";
+    char ex_2[] = "5 * 2 ^ 3 ^ 4 + 1 +  79";
+    char ex_3[] = "1 + 3 *  9";
+    char ex_4[] = "64 ^ 0 / 2 + 6";
+    char ex_5[] = "4 ^ 2 / 8 + 1";
+    char ex_6[] = "";
+    char ex_7[] = "";
+    char ex_8[] = "";
+    char ex_9[] = "";
 
-    expected(ex_1, 23);
-    expected(ex_2, 15);
-    expected(ex_3, 20560);
+    expected(ex_0, 23);
+    expected(ex_1, 15);
+    expected(ex_2, 20560);
+    expected(ex_3, 28);
+    expected(ex_4, 6.5f); 
+    expected(ex_5, 3);
 }
 
 int main(void)

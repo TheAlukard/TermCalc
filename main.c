@@ -1,3 +1,4 @@
+#include <corecrt.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,6 +127,11 @@ typedef struct {
     size_t capacity;
 } Stackc;
 
+bool parse_input(char *buffer, size_t buffer_count, Math *output);
+void parse_operations(Parser *parser, char *ops, size_t ops_count);
+void parse_expression(Parser *parser);
+double do_the_math(const Math math);
+
 void stack_push(Stack *stack, double item)
 {
     list_append((*stack), item);
@@ -209,67 +215,122 @@ double perform_operation(double num1, double num2, char operation)
     }
 }
 
+double chop_num(char **buffer, size_t buffer_count)
+{
+    size_t count = 0;
+    char *pos = *buffer;
+    char *start = *buffer;
+    bool isdot = false;
+    while (*pos != 0) {
+        if (isdigit(*pos)) {
+            start = pos;
+            while (*pos != 0 && (isdigit(*pos) == true || *pos == '.')) {
+                if (*pos == '.') {
+                    if (isdot) {
+                        return 0;
+                    }
+                    else {
+                        isdot = true;
+                    }
+                } 
+                count++;
+                pos++;
+            }
+            char temp[count + 1];
+            memcpy(temp, start, count * sizeof(char));
+            temp[count] = '\0';
+            char *end;
+            double result = strtod(temp, &end);
+            *buffer = pos;
+            return result;
+        }
+
+        pos++;
+    }
+
+    return 0;
+}
+
+char* chop_paren(char **buffer, char *endPtr)
+{
+    if (**buffer != '(') {
+        return NULL;
+    }
+
+    size_t i = 0;
+    char *start = *buffer + 1;
+    char *pos = start;
+    char *location = start;
+    bool ended = false;
+
+    while (pos < endPtr && *pos != 0) {
+        if (*pos == ')') {
+            ended = true;
+            location = pos;
+        }
+
+        pos++;
+        i++;
+    }
+
+    if (! ended) {
+        return NULL;
+    }
+
+    size_t size = location - start;
+    char *new_expr = (char*)malloc((size + 1) * sizeof(char));
+    memcpy(new_expr, start, size);
+    new_expr[size] = '\0';
+    *buffer = location + 1;
+
+    return new_expr;
+}
+
 bool parse_input(char *buffer, size_t buffer_count, Math *output)
 {
     remove_white_spaces(buffer, buffer_count);
 
-    size_t count = 0;
-    char *position = buffer;
+    char *pos = buffer;
+    size_t i = 0;
+    bool isnum = false;
 
-    while (*position != 0) {
-
-        // printf("Buffer:\n%s\n", buffer);
-
-        char current = *position;
-
-        if (isdigit(current) || current == '.') {
-            count += 1;
+    while (i < buffer_count && *pos != 0) {
+        if (isdigit(*pos)) {
+            double num = chop_num(&pos, buffer_count - i);
+            i = pos - buffer;
+            isnum = true;
+            list_append(output->num_list, num);
         }
-
-        else if (str_contains(operators, operator_count, current)) {
-            if (count == 0) {
-                fprintf(stderr, "Error: Entered operator before entering any number.\n");
+        else if (str_contains(operators, operator_count, *pos)) {
+            if (! isnum) {
+                fprintf(stderr, "Error: Operator wasn't preceeded by a number\n");
                 exit(1);
             }
 
-            char temp[count + 1];
-            memcpy(temp, buffer, count * sizeof(char));
-            temp[count] = '\0';
-            char *end;
-            double num = strtod(temp, &end);
+            list_append(output->oper_list, *pos);
 
-            list_append(output->num_list, num);
-            list_append(output->oper_list, current);
-
-            // printf("{\n");
-            // printf("    Buffer : %s\n", buffer);
-            // printf("    Temp   : %s\n", temp);
-            // printf("    Number : %lf\n", num);
-            // printf("    Current: %c\n", current);
-            // printf("    Count  : %zu\n", count);
-            // printf("}\n");
-
-            buffer += count + 1;
-            count = 0;
+            isnum = false;
+            i++;
+            pos++;
         }
-
-        position++;
-    }
-
-    char *end;
-    double num = strtod(buffer, &end);
-    list_append(output->num_list, num);
-
-    if (output->num_list.count <= 0) {
-        printf("Next time enter a number.");
-    }
-
-    if (output->oper_list.count != output->num_list.count - 1) {
-        fprintf(stderr, "%s:%d:1 Invalid input:", __FILE__, __LINE__);
-        exit(1);
-    }
-
-    return true;
+        else if (*pos == '(') {
+            char *current = pos;
+            Parser parser;
+            parser.expr = chop_paren(&pos, buffer + buffer_count);
+            if (parser.expr == NULL) {
+                printf("Shit\n");
+            }
+            i = pos - current;
+            list_alloc(parser.math.num_list);
+            list_alloc(parser.math.oper_list);
+            parse_input(parser.expr, strlen(parser.expr), &parser.math);
+            parse_expression(&parser);
+            list_append(output->num_list, do_the_math(parser.math));
+            free(parser.expr);
+            list_free(parser.math.num_list);
+            list_free(parser.math.oper_list);
+        }
+    }  
 }
 
 void parse_operations(Parser *parser, char *ops, size_t ops_count)
@@ -405,6 +466,8 @@ void test()
     EXPECTED("1 / 0.3 - 0.1 * 3 ^ 2", 2.43333333333333, success);
     EXPECTED("0 / 2 * 1", 0, success);
     EXPECTED("0/1*2", 0, success);
+    EXPECTED("2 ^ 3 + 2", 10, success);
+    EXPECTED("2 ^ (3 + 2)", 32, success);
 
     if (success) {
         printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");

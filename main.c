@@ -9,18 +9,7 @@
 
 #define array_len(array) (sizeof(array) / sizeof((array)[0]))
 
-#define contains(list, count, item, result)                                    \
-  do {                                                                         \
-    result = false;                                                            \
-    for (size_t i = 0; i < count; i++) {                                       \
-      if (list[i] == item) {                                                   \
-        result = true;                                                         \
-        break;                                                                 \
-      }                                                                        \
-    }                                                                          \
-  } while (0)
-
-#define DEFAULT_LIST_CAP 16
+#define DEFAULT_LIST_CAP 32
 
 #define list_alloc(list)                                                       \
   do {                                                                         \
@@ -47,6 +36,30 @@
     }                                                                          \
     list.items[list.count] = item;                                             \
     list.count += 1;                                                           \
+  } while (0)
+
+#define list_pop(list)                                                         \
+  do {                                                                         \
+    if (list.count > 0) {                                                      \
+      list.count -= 1;                                                         \
+      list.items[list.count] = 0;                                              \
+      if (list.count < list.capacity / 3) {                                    \
+        list.capacity /= 2;                                                    \
+        list.items = realloc(list.items, list.capacity * sizeof(*list.items)); \
+      }                                                                        \
+    }                                                                          \
+  } while (0)
+
+#define list_print(list, format)                                               \
+  do {                                                                         \
+    printf("[");                                                               \
+    for (size_t i = 0; i < list.count; i++) {                                  \
+      printf(format, list.items[i]);                                           \
+      if (i < list.count - 1) {                                                \
+        printf(", ");                                                          \
+      }                                                                        \
+    }                                                                          \
+    printf("]\n");                                                             \
   } while (0)
 
 #define list_clear(list) (list.count = 0)
@@ -76,14 +89,36 @@ typedef struct {
     Math math;
 } Parser;
 
-Parser new_parser(char *expr)
-{
-    Parser parser;
-    parser.expr = expr;
-    list_alloc(parser.math.num_list);
-    list_alloc(parser.math.oper_list);
+typedef struct {
+    double *items;
+    size_t count;
+    size_t capacity;
+} Stack;
 
-    return parser;
+void stack_push(Stack *stack, double item)
+{
+    list_append((*stack), item);
+}
+
+double stack_pop(Stack *stack)
+{
+    double removed = stack->items[stack->count - 1];
+    list_pop((*stack));
+
+    return removed;
+}
+
+void print_math(const Math math)
+{
+    printf("Math:\n");
+
+    for (size_t i = 0; i < math.num_list.count; i++) {
+        printf("    %lf \n",math.num_list.items[i]);
+        if (i < math.oper_list.count) {
+            printf("    %c \n", math.oper_list.items[i]);
+        }
+    }
+    printf("\n");
 }
 
 bool str_contains(const char* str, size_t count, char item)
@@ -123,7 +158,6 @@ double perform_operation(double num1, double num2, char operation)
         case '%': 
             return (int64_t)(num1) % (int64_t)(num2);
         case '^': 
-            printf("%lf ^ %lf = %lf", num1, num2, pow(num1, num2));
             return pow(num1, num2);
         default:
             fprintf(stderr, "%s:%d:1 Invalid operation: '%c'", __FILE__, __LINE__, operation);
@@ -198,15 +232,7 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
 {
     if (parser->math.oper_list.count != parser->math.num_list.count - 1) {
         fprintf(stderr, "%s:%d:1 Invalid input:\n", __FILE__, __LINE__);
-
-        for (size_t i = 0; i < parser->math.num_list.count; i++) {
-            printf("%lf ",parser->math.num_list.items[i]);
-            if (i < parser->math.oper_list.count) {
-                printf("%c ", parser->math.oper_list.items[i]);
-            }
-        }
-
-        printf("\n");
+        print_math(parser->math);
         exit(1);
     }
 
@@ -215,41 +241,94 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
     list_alloc(new.oper_list);
 
     double result;
+
+    // for (size_t i = 0; i < parser->math.oper_list.count; i++) {
+    //     if (str_contains(ops, ops_count, parser->math.oper_list.items[i])) {
+    //         double num;
+    //         if (! checked) {
+    //             num = parser->math.num_list.items[i];
+    //             checked = true;
+    //         }
+    //         else {
+    //             num = result;
+    //         }
+    //         result = perform_operation(num, parser->math.num_list.items[i + 1], parser->math.oper_list.items[i]);
+
+    //         if (i == parser->math.oper_list.count - 1) {
+    //             list_append(new.num_list, result);
+    //         }
+    //     }
+    //     else {
+    //         if (checked) {
+    //             list_append(new.num_list, result);
+    //             checked = false;
+    //         }
+    //         else {
+    //             list_append(new.num_list, parser->math.num_list.items[i]);
+    //         }
+    //         list_append(new.oper_list, parser->math.oper_list.items[i]);
+    //         if (i == parser->math.oper_list.count - 1) {
+    //             list_append(new.num_list, parser->math.num_list.items[i + 1]);
+    //         }
+    //     }
+    // }
+
+    /* 
+        3 * ,  
+        7 + , i
+        46 % , j
+        4 ,
+        -----------
+        21 + , i
+        46 % , j
+        4 ,
+    */
+
+    Stack stack;
+    list_alloc(stack);
+    stack_push(&stack, parser->math.num_list.items[0]);
     bool checked = false;
 
+    size_t j = 0;
     for (size_t i = 0; i < parser->math.oper_list.count; i++) {
-        if (str_contains(ops, ops_count, parser->math.oper_list.items[i])) {
-            double num;
-            if (! checked) {
-                num = parser->math.num_list.items[i];
-                checked = true;
-            }
-            else {
-                num = result;
-            }
-            result = perform_operation(num, parser->math.num_list.items[i + 1], parser->math.oper_list.items[i]);
-
-            if (i == parser->math.oper_list.count - 1) {
-                list_append(new.num_list, result);
-            }
+        char operator = parser->math.oper_list.items[i];
+        if (str_contains(ops, ops_count, operator)) {
+            double num = stack_pop(&stack);
+            stack_push(&stack, perform_operation(num, parser->math.num_list.items[i + 1], operator));
+            checked = true;
+            j += 2;
         }
         else {
-            if (checked) {
-                list_append(new.num_list, result);
-                checked = false;
+            list_append(new.oper_list, operator);
+            if (i + 1 < parser->math.oper_list.count) {
+                if (! checked) {
+                    stack_push(&stack, parser->math.oper_list.count);
+                    checked = false;
+                }
             }
             else {
-                list_append(new.num_list, parser->math.num_list.items[i]);
+                stack_push(&stack, parser->math.num_list.items[j]);
             }
-            list_append(new.oper_list, parser->math.oper_list.items[i]);
-            if (i == parser->math.oper_list.count - 1) {
-                list_append(new.num_list, parser->math.num_list.items[i + 1]);
-            }
+            j += 1;
         }
     }
 
+    if (stack.count != new.oper_list.count + 1) {
+        printf("Something's wrong, I can feel it\n");
+        printf("new.oper_list.count: %zu\n", new.oper_list.count);
+        printf("stack.count: %zu\n", stack.count);
+    }
+
+    for (size_t i = 0; i < stack.count; i++) {
+        list_append(new.num_list, stack.items[i]);
+    }
+
+    printf("Stack: ");
+    list_print(stack, "%lf");
+
     list_free(parser->math.num_list);
     list_free(parser->math.oper_list);
+    list_free(stack);
 
     parser->math = new;
 }
@@ -265,8 +344,11 @@ void parse_expression(Parser *parser)
     parse_operations(parser, "*/%", 3);
 }
 
+
 double do_the_math(const Math math)
 {
+    print_math(math);
+
     double result = math.num_list.items[0];
 
     for (size_t i = 1; i < math.num_list.count; i++) {
@@ -284,12 +366,14 @@ bool expected(char* input, double expected_output)
     list_alloc(parser.math.oper_list);
     parse_input(input, strlen(input) + 1, &parser.math);
 
+#if 0
     for (size_t i = 0; i < parser.math.num_list.count; i++) {
         printf("%lf ",parser.math.num_list.items[i]);
         if (i < parser.math.oper_list.count) {
             printf("%c ", parser.math.oper_list.items[i]);
         }
     }
+#endif
 
     parse_expression(&parser);
     double output = do_the_math(parser.math);
@@ -334,18 +418,18 @@ void test()
     expected(ex_3, 1);
     expected(ex_4, 27); 
     expected(ex_5, 2);
-    // expected(ex_6, 23);
-    // expected(ex_7, 15);
-    // expected(ex_8, 20560);
-    // expected(ex_9, 28);
-    // expected(ex_10, 6.5f); 
-    // expected(ex_11, 3);
-    // expected(ex_12, 8);
-    // expected(ex_13, 1.55555555555556);
-    // expected(ex_14, 16);
-    // expected(ex_15, 2.43333333333333);
-    // expected(ex_16, 0);
-    // expected(ex_17, 0);
+    expected(ex_6, 23);
+    expected(ex_7, 15);
+    expected(ex_8, 20560);
+    expected(ex_9, 28);
+    expected(ex_10, 6.5f); 
+    expected(ex_11, 3);
+    expected(ex_12, 8);
+    expected(ex_13, 1.55555555555556);
+    expected(ex_14, 16);
+    expected(ex_15, 2.43333333333333);
+    expected(ex_16, 0);
+    expected(ex_17, 0);
 }
 
 int main(void)
@@ -361,7 +445,8 @@ int main(void)
     Parser parser;
     list_alloc(parser.math.num_list);
     list_alloc(parser.math.oper_list);
-    
+    double result;
+
     while (true)
     {
         memset(buffer, 0, buffer_count * sizeof(char));
@@ -371,7 +456,7 @@ int main(void)
         parse_input(buffer, buffer_count, &parser.math); 
         parse_expression(&parser);
 
-        double result = do_the_math(parser.math);
+        result = do_the_math(parser.math);
 
         printf("Result: %lf\n", result);
 

@@ -50,6 +50,31 @@
     }                                                                          \
   } while (0)
 
+#define list_copy(dest, src, start, count)                                     \
+  do {                                                                         \
+    if (start < 0) {                                                           \
+      break;                                                                   \
+    }                                                                          \
+    size_t i = start;                                                          \
+    size_t j = 0;                                                              \
+    while (i < count && i < src.count && j < dest.count) {                     \
+      dest.items[j] = src.items[i];                                            \
+      i += 1;                                                                  \
+      j += 1;                                                                  \
+    }                                                                          \
+  } while (0)
+
+#define list_transfer(dest, src)                                               \
+  do {                                                                         \
+    if (dest.items != NULL) {                                                  \
+      free(dest.items);                                                        \
+      dest.items = NULL;                                                       \
+    }                                                                          \
+    dest.items = src.items;                                                    \
+    dest.capacity = src.capacity;                                              \
+    dest.count = src.count;                                                    \
+  } while (0)
+
 #define list_print(list, format)                                               \
   do {                                                                         \
     printf("[");                                                               \
@@ -95,6 +120,12 @@ typedef struct {
     size_t capacity;
 } Stack;
 
+typedef struct {
+    char *items;
+    size_t count;
+    size_t capacity;
+} Stackc;
+
 void stack_push(Stack *stack, double item)
 {
     list_append((*stack), item);
@@ -103,6 +134,19 @@ void stack_push(Stack *stack, double item)
 double stack_pop(Stack *stack)
 {
     double removed = stack->items[stack->count - 1];
+    list_pop((*stack));
+
+    return removed;
+}
+
+void stackc_push(Stackc *stack, char item)
+{
+    list_append((*stack), item);
+}
+
+char stackc_pop(Stackc *stack)
+{
+    char removed = stack->items[stack->count - 1];
     list_pop((*stack));
 
     return removed;
@@ -236,101 +280,36 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
         exit(1);
     }
 
-    Math new;
-    list_alloc(new.num_list);
-    list_alloc(new.oper_list);
+    Stack num_stack;
+    Stackc oper_stack;
+    list_alloc(num_stack);
+    list_alloc(oper_stack);
+    stack_push(&num_stack, parser->math.num_list.items[0]);
 
-    double result;
-
-    // for (size_t i = 0; i < parser->math.oper_list.count; i++) {
-    //     if (str_contains(ops, ops_count, parser->math.oper_list.items[i])) {
-    //         double num;
-    //         if (! checked) {
-    //             num = parser->math.num_list.items[i];
-    //             checked = true;
-    //         }
-    //         else {
-    //             num = result;
-    //         }
-    //         result = perform_operation(num, parser->math.num_list.items[i + 1], parser->math.oper_list.items[i]);
-
-    //         if (i == parser->math.oper_list.count - 1) {
-    //             list_append(new.num_list, result);
-    //         }
-    //     }
-    //     else {
-    //         if (checked) {
-    //             list_append(new.num_list, result);
-    //             checked = false;
-    //         }
-    //         else {
-    //             list_append(new.num_list, parser->math.num_list.items[i]);
-    //         }
-    //         list_append(new.oper_list, parser->math.oper_list.items[i]);
-    //         if (i == parser->math.oper_list.count - 1) {
-    //             list_append(new.num_list, parser->math.num_list.items[i + 1]);
-    //         }
-    //     }
-    // }
-
-    /* 
-        3 * ,  
-        7 + , i
-        46 % , j
-        4 ,
-        -----------
-        21 + , i
-        46 % , j
-        4 ,
-    */
-
-    Stack stack;
-    list_alloc(stack);
-    stack_push(&stack, parser->math.num_list.items[0]);
-    bool checked = false;
-
-    size_t j = 0;
+    size_t j = 1;
     for (size_t i = 0; i < parser->math.oper_list.count; i++) {
         char operator = parser->math.oper_list.items[i];
         if (str_contains(ops, ops_count, operator)) {
-            double num = stack_pop(&stack);
-            stack_push(&stack, perform_operation(num, parser->math.num_list.items[i + 1], operator));
-            checked = true;
-            j += 2;
+            double num = stack_pop(&num_stack);
+            double result = perform_operation(num, parser->math.num_list.items[i + 1], operator);
+            stack_push(&num_stack, result);
+            j = i + 2;
         }
         else {
-            list_append(new.oper_list, operator);
-            if (i + 1 < parser->math.oper_list.count) {
-                if (! checked) {
-                    stack_push(&stack, parser->math.oper_list.count);
-                    checked = false;
-                }
-            }
-            else {
-                stack_push(&stack, parser->math.num_list.items[j]);
-            }
-            j += 1;
+            stackc_push(&oper_stack, operator);
+            stack_push(&num_stack, parser->math.num_list.items[j]);
+            j++;
         }
     }
 
-    if (stack.count != new.oper_list.count + 1) {
+    if (num_stack.count != oper_stack.count + 1) {
         printf("Something's wrong, I can feel it\n");
-        printf("new.oper_list.count: %zu\n", new.oper_list.count);
-        printf("stack.count: %zu\n", stack.count);
+        printf("new.oper_list.count: %zu\n", oper_stack.count);
+        printf("num_stack.count: %zu\n", num_stack.count);
     }
 
-    for (size_t i = 0; i < stack.count; i++) {
-        list_append(new.num_list, stack.items[i]);
-    }
-
-    printf("Stack: ");
-    list_print(stack, "%lf");
-
-    list_free(parser->math.num_list);
-    list_free(parser->math.oper_list);
-    list_free(stack);
-
-    parser->math = new;
+    list_transfer(parser->math.num_list, num_stack);
+    list_transfer(parser->math.oper_list, oper_stack);
 }
 
 
@@ -338,8 +317,6 @@ void parse_expression(Parser *parser)
 {
     remove_white_spaces(parser->expr, strlen(parser->expr));
 
-    // printf("%s\n", parser->expr);
-    
     parse_operations(parser, "^", 1);
     parse_operations(parser, "*/%", 3);
 }
@@ -347,7 +324,7 @@ void parse_expression(Parser *parser)
 
 double do_the_math(const Math math)
 {
-    print_math(math);
+    // print_math(math);
 
     double result = math.num_list.items[0];
 
@@ -381,55 +358,60 @@ bool expected(char* input, double expected_output)
     list_free(parser.math.num_list);
     list_free(parser.math.oper_list);
 
+    bool success;
+
     printf("{\n");
     printf("    Input   : %s\n", input);
-    printf("    Output  : %lf\n", output);
-    printf("    Expected: %lf\n", expected_output);
+    if (((int64_t)output ^ (int64_t)expected_output) != 0) {
+        printf("    \033[31mOutput  : %lf\n", output);
+        success= false;
+    }
+    else {
+        printf("    Output  : %lf\n", output);
+        success = true;
+    }
+    printf("    \033[0mExpected: %lf\n", expected_output);
     printf("}\n");
 
-    return output == expected_output; 
+    return success; 
 }
 
+#define EXPECTED(expr, EXPECTED_OUTPUT, success)                               \
+  do {                                                                         \
+    char EXPR[] = expr;                                                        \
+    if (! expected(EXPR, EXPECTED_OUTPUT)) {                                   \
+      success = false;                                                          \
+    }                                                                          \
+  } while (0)
 
 void test()
 {
-    char ex_0[] = "3 + 3";
-    char ex_1[] = "3 - 3";
-    char ex_2[] = "3 * 3";
-    char ex_3[] = "3 / 3";
-    char ex_4[] = "3 ^ 3";
-    char ex_5[] = "5 % 3";
-    char ex_6[] = "3 * 7 + 46 % 4";
-    char ex_7[] = "5 * 2 ^ 3 / 4 + 1 * 5";
-    char ex_8[] = "5 * 2 ^ 3 ^ 4 + 1 +  79";
-    char ex_9[] = "1 + 3 *  9";
-    char ex_10[] = "64 ^ 0 / 2 + 6";
-    char ex_11[] = "4 ^ 2 / 8 + 1";
-    char ex_12[] = "1 / 0.5 + 6";
-    char ex_13[] = "3 + 5 / 3 ^ 4 * 9 - 2 * 1";
-    char ex_14[] = "3 + 3 + 3 + 3 + 3 ^ 0 + 3";
-    char ex_15[] = "1 / 0.3 - 0.1 * 3 ^ 2";
-    char ex_16[] = "0 / 2 * 1";
-    char ex_17[] = "0/1*2";
+    bool success = true;
+    EXPECTED("3 + 3", 6, success);
+    EXPECTED("3 - 3", 0, success);
+    EXPECTED("3 * 3", 9, success);
+    EXPECTED("3 / 3", 1, success);
+    EXPECTED("3 ^ 3", 27, success);
+    EXPECTED("5 % 3", 2, success);
+    EXPECTED("3 * 7 + 46 % 4", 23, success);
+    EXPECTED("5 * 2 ^ 3 / 4 + 1 * 5", 15, success);
+    EXPECTED("5 * 2 ^ 3 ^ 4 + 1 +  79", 20560, success);
+    EXPECTED("1 + 3 *  9", 28, success);
+    EXPECTED("64 ^ 0 / 2 + 6", 6.5f, success);
+    EXPECTED("4 ^ 2 / 8 + 1", 3, success);
+    EXPECTED("1 / 0.5 + 6", 8, success);
+    EXPECTED("3 + 5 / 3 ^ 4 * 9 - 2 * 1", 1.55555555555556, success);
+    EXPECTED("3 + 3 + 3 + 3 + 3 ^ 0 + 3", 16, success);
+    EXPECTED("1 / 0.3 - 0.1 * 3 ^ 2", 2.43333333333333, success);
+    EXPECTED("0 / 2 * 1", 0, success);
+    EXPECTED("0/1*2", 0, success);
 
-    expected(ex_0, 6);
-    expected(ex_1, 0);
-    expected(ex_2, 9);
-    expected(ex_3, 1);
-    expected(ex_4, 27); 
-    expected(ex_5, 2);
-    expected(ex_6, 23);
-    expected(ex_7, 15);
-    expected(ex_8, 20560);
-    expected(ex_9, 28);
-    expected(ex_10, 6.5f); 
-    expected(ex_11, 3);
-    expected(ex_12, 8);
-    expected(ex_13, 1.55555555555556);
-    expected(ex_14, 16);
-    expected(ex_15, 2.43333333333333);
-    expected(ex_16, 0);
-    expected(ex_17, 0);
+    if (success) {
+        printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");
+    }
+    else {
+        printf("\033[31mNOT ALL TESTS WERE SUCCESSFUL!\n");
+    }
 }
 
 int main(void)

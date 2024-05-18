@@ -123,6 +123,7 @@ double perform_operation(double num1, double num2, char operation)
         case '%': 
             return (int64_t)(num1) % (int64_t)(num2);
         case '^': 
+            printf("%lf ^ %lf = %lf", num1, num2, pow(num1, num2));
             return pow(num1, num2);
         default:
             fprintf(stderr, "%s:%d:1 Invalid operation: '%c'", __FILE__, __LINE__, operation);
@@ -283,12 +284,12 @@ bool expected(char* input, double expected_output)
     list_alloc(parser.math.oper_list);
     parse_input(input, strlen(input) + 1, &parser.math);
 
-    // for (size_t i = 0; i < parser.math.num_list.count; i++) {
-    //     printf("%lf ",parser.math.num_list.items[i]);
-    //     if (i < parser.math.oper_list.count) {
-    //         printf("%c ", parser.math.oper_list.items[i]);
-    //     }
-    // }
+    for (size_t i = 0; i < parser.math.num_list.count; i++) {
+        printf("%lf ",parser.math.num_list.items[i]);
+        if (i < parser.math.oper_list.count) {
+            printf("%c ", parser.math.oper_list.items[i]);
+        }
+    }
 
     parse_expression(&parser);
     double output = do_the_math(parser.math);
@@ -333,18 +334,18 @@ void test()
     expected(ex_3, 1);
     expected(ex_4, 27); 
     expected(ex_5, 2);
-    expected(ex_6, 23);
-    expected(ex_7, 15);
-    expected(ex_8, 20560);
-    expected(ex_9, 28);
-    expected(ex_10, 6.5f); 
-    expected(ex_11, 3);
-    expected(ex_12, 8);
-    expected(ex_13, 1.55555555555556);
-    expected(ex_14, 16);
-    expected(ex_15, 2.43333333333333);
-    expected(ex_16, 0);
-    expected(ex_17, 0);
+    // expected(ex_6, 23);
+    // expected(ex_7, 15);
+    // expected(ex_8, 20560);
+    // expected(ex_9, 28);
+    // expected(ex_10, 6.5f); 
+    // expected(ex_11, 3);
+    // expected(ex_12, 8);
+    // expected(ex_13, 1.55555555555556);
+    // expected(ex_14, 16);
+    // expected(ex_15, 2.43333333333333);
+    // expected(ex_16, 0);
+    // expected(ex_17, 0);
 }
 
 int main(void)

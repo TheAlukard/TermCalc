@@ -257,20 +257,28 @@ char* chop_paren(char **buffer, char *endPtr)
         return NULL;
     }
 
-    size_t i = 0;
     char *start = *buffer + 1;
     char *pos = start;
     char *location = start;
     bool ended = false;
+    size_t countered = 0;
 
     while (pos < endPtr && *pos != 0) {
         if (*pos == ')') {
             ended = true;
             location = pos;
+            if (countered == 0) {
+                break;
+            }
+            else {
+                countered--;
+            }
+        }
+        else if (*pos == '(') {
+            countered++;
         }
 
         pos++;
-        i++;
     }
 
     if (! ended) {
@@ -304,6 +312,9 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
         else if (str_contains(operators, operator_count, *pos)) {
             if (! isnum) {
                 fprintf(stderr, "Error: Operator wasn't preceeded by a number\n");
+                list_print((output->num_list), "%lf");
+                list_print((output->oper_list), "%c");
+                printf("buff: %s\n", pos);
                 exit(1);
             }
 
@@ -329,8 +340,11 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             free(parser.expr);
             list_free(parser.math.num_list);
             list_free(parser.math.oper_list);
+            isnum = true;
         }
     }  
+
+    return true;
 }
 
 void parse_operations(Parser *parser, char *ops, size_t ops_count)
@@ -468,6 +482,21 @@ void test()
     EXPECTED("0/1*2", 0, success);
     EXPECTED("2 ^ 3 + 2", 10, success);
     EXPECTED("2 ^ (3 + 2)", 32, success);
+    EXPECTED("9 / 3 - 2", 1, success);
+    EXPECTED("9 / (3 - 2)", 9, success);
+    EXPECTED("9 + 2 ^ 2 + 9 * 3 - 1 - 1", 9 + pow(2, 2) + 9 * 3 -1 -1, success);
+    EXPECTED("9 + 2 ^ (2 + 9 * 3 - 1 - 1)", 9 + pow(2, 2 + 9 * 3 - 1 - 1), success);
+    EXPECTED("9 + 2 ^ (2 + 9 * (3 - 1) - 1)", 9 + pow(2, 2 + 9 * (3 - 1) - 1), success);
+    EXPECTED(
+        "0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))", 
+        0.f / (3 - 1) + 9 * (pow(2, 1+1) + 3 * (3 * (1 - 1 + (3.f / 1)))), 
+        success
+    );
+    EXPECTED(
+        "90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 ) ) ) ) )", 
+        90 / (32.32f * pow(32, 3.f / 2.f)) + (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))), 
+        success
+    );
 
     if (success) {
         printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");

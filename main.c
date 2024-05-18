@@ -416,7 +416,7 @@ void test()
 
 int main(void)
 {
-#if 1
+#if 0
     test(); 
     return 0;
 #endif

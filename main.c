@@ -308,36 +308,48 @@ bool expected(char* input, double expected_output)
 
 void test()
 {
-    char ex_0[] = "3 * 7 + 46 % 4";
-    char ex_1[] = "5 * 2 ^ 3 / 4 + 1 * 5";
-    char ex_2[] = "5 * 2 ^ 3 ^ 4 + 1 +  79";
-    char ex_3[] = "1 + 3 *  9";
-    char ex_4[] = "64 ^ 0 / 2 + 6";
-    char ex_5[] = "4 ^ 2 / 8 + 1";
-    char ex_6[] = "1 / 0.5 + 6";
-    char ex_7[] = "3 + 5 / 3 ^ 4 * 9 - 2 * 1";
-    char ex_8[] = "3 + 3 + 3 + 3 + 3 ^ 0 + 3";
-    char ex_9[] = "1 / 0.3 - 0.1 * 3 ^ 2";
-    char ex_10[] = "0 / 2 * 1";
-    char ex_11[] = "0/1*2";
+    char ex_0[] = "3 + 3";
+    char ex_1[] = "3 - 3";
+    char ex_2[] = "3 * 3";
+    char ex_3[] = "3 / 3";
+    char ex_4[] = "3 ^ 3";
+    char ex_5[] = "5 % 3";
+    char ex_6[] = "3 * 7 + 46 % 4";
+    char ex_7[] = "5 * 2 ^ 3 / 4 + 1 * 5";
+    char ex_8[] = "5 * 2 ^ 3 ^ 4 + 1 +  79";
+    char ex_9[] = "1 + 3 *  9";
+    char ex_10[] = "64 ^ 0 / 2 + 6";
+    char ex_11[] = "4 ^ 2 / 8 + 1";
+    char ex_12[] = "1 / 0.5 + 6";
+    char ex_13[] = "3 + 5 / 3 ^ 4 * 9 - 2 * 1";
+    char ex_14[] = "3 + 3 + 3 + 3 + 3 ^ 0 + 3";
+    char ex_15[] = "1 / 0.3 - 0.1 * 3 ^ 2";
+    char ex_16[] = "0 / 2 * 1";
+    char ex_17[] = "0/1*2";
 
-    expected(ex_0, 23);
-    expected(ex_1, 15);
-    expected(ex_2, 20560);
-    expected(ex_3, 28);
-    expected(ex_4, 6.5f); 
-    expected(ex_5, 3);
-    expected(ex_6, 8);
-    expected(ex_7, 1.55555555555556);
-    expected(ex_8, 16);
-    expected(ex_9, 2.43333333333333);
-    expected(ex_10, 0);
-    expected(ex_11, 0);
+    expected(ex_0, 6);
+    expected(ex_1, 0);
+    expected(ex_2, 9);
+    expected(ex_3, 1);
+    expected(ex_4, 27); 
+    expected(ex_5, 2);
+    expected(ex_6, 23);
+    expected(ex_7, 15);
+    expected(ex_8, 20560);
+    expected(ex_9, 28);
+    expected(ex_10, 6.5f); 
+    expected(ex_11, 3);
+    expected(ex_12, 8);
+    expected(ex_13, 1.55555555555556);
+    expected(ex_14, 16);
+    expected(ex_15, 2.43333333333333);
+    expected(ex_16, 0);
+    expected(ex_17, 0);
 }
 
 int main(void)
 {
-#if 0
+#if 1
     test(); 
     return 0;
 #endif

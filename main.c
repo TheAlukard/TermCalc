@@ -342,7 +342,8 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             Parser parser;
             parser.expr = chop_paren(&pos, buffer + buffer_count);
             if (parser.expr == NULL) {
-                printf("Shit\n");
+                fprintf(stderr, "Error: Invalid parenthesis.");
+                exit(1);
             }
             i = pos - current;
             list_alloc(parser.math.num_list);

@@ -301,12 +301,20 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
     char *pos = buffer;
     size_t i = 0;
     bool isnum = false;
+    bool negate = false;
+    if (*pos == '-') {
+        negate = true;
+    }
 
     while (i < buffer_count && *pos != 0) {
         if (isdigit(*pos)) {
             double num = chop_num(&pos, buffer_count - i);
             i = pos - buffer;
             isnum = true;
+            if (negate) {
+                num *= -1;
+                negate = false;
+            }
             list_append(output->num_list, num);
         }
         else if (str_contains(operators, operator_count, *pos)) {
@@ -319,10 +327,15 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             }
 
             list_append(output->oper_list, *pos);
-
             isnum = false;
             i++;
             pos++;
+
+            if (i < buffer_count && *pos == '-') {
+                negate = true;
+                pos++;
+                i++;
+            }
         }
         else if (*pos == '(') {
             char *current = pos;
@@ -336,7 +349,12 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             list_alloc(parser.math.oper_list);
             parse_input(parser.expr, strlen(parser.expr), &parser.math);
             parse_expression(&parser);
-            list_append(output->num_list, do_the_math(parser.math));
+            double result = do_the_math(parser.math);
+            if (negate) {
+                result *= -1;
+                negate = false;
+            }
+            list_append(output->num_list, result);
             free(parser.expr);
             list_free(parser.math.num_list);
             list_free(parser.math.oper_list);
@@ -468,6 +486,9 @@ void test()
     EXPECTED("3 / 3", 1, success);
     EXPECTED("3 ^ 3", 27, success);
     EXPECTED("5 % 3", 2, success);
+    EXPECTED("5 - -3", 8, success);
+    EXPECTED("5 + -(2 * 3)", -1, success);
+    EXPECTED("5 * -1", -5, success);
     EXPECTED("3 * 7 + 46 % 4", 23, success);
     EXPECTED("5 * 2 ^ 3 / 4 + 1 * 5", 15, success);
     EXPECTED("5 * 2 ^ 3 ^ 4 + 1 +  79", 20560, success);
@@ -495,6 +516,11 @@ void test()
     EXPECTED(
         "90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 ) ) ) ) )", 
         90 / (32.32f * pow(32, 3.f / 2.f)) + (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))), 
+        success
+    );
+    EXPECTED(
+        "32 -(8 * -5 / 0.3 * (6 - 7) + -1) / 3.5 - -8",
+        32 -(8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8,
         success
     );
 

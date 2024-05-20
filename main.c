@@ -593,7 +593,7 @@ char* chop_arg(int *argc, char *(**argv))
     return arg;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
     char *program = chop_arg(&argc, &argv);
     bool Test = false;

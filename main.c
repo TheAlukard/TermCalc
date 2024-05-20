@@ -581,12 +581,36 @@ void test()
     }
 }
 
-int main(void)
+char* chop_arg(int *argc, char *(**argv))
 {
-#if 1
-    test(); 
-    return 0;
-#endif
+    if (argc <= 0) return NULL;
+
+
+    char* arg = **argv;
+    *argv += 1;
+    argc -= 1;
+
+    return arg;
+}
+
+int main(int argc, char **argv)
+{
+    char *program = chop_arg(&argc, &argv);
+    bool Test = false;
+
+    if (argc > 0) {
+        char *flag = chop_arg(&argc, &argv);
+        if (flag != NULL) {
+            if (strcmp("test", flag) == 0) {
+                Test = true;
+            }
+        }
+    }
+
+    if (Test) {
+        test(); 
+        return 0;
+    }
 
     char buffer[1000];
     const size_t buffer_count = array_len(buffer);

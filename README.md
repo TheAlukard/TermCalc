@@ -3,6 +3,10 @@
 
     .\build.ps1
 
+**Provide the 'test' flag if you want to run tests instead**
+
+    .\build.ps1 test
+
 # Usage
 
 ### Operators in descending order of their precedence:

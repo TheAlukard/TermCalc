@@ -113,6 +113,7 @@ typedef struct {
 typedef struct {
     char *expr;
     Math math;
+    double ans;
 } Parser;
 
 typedef struct {
@@ -251,6 +252,34 @@ double chop_num(char **buffer, size_t buffer_count)
     return 0;
 }
 
+bool chop_word(char **buffer, char* word, size_t word_size)
+{
+    if (**buffer != *word) {
+        return false;
+    }
+
+    char *pos = *buffer;
+    size_t i = 0;
+
+    while (*pos != '\0' && i < word_size) {
+        if (*pos != *word) {
+            return false;
+        }
+
+        pos++;
+        word++;
+        i++;
+    }
+
+    if (i != word_size) {
+        return false;
+    }
+
+    *buffer = pos;
+
+    return true;
+}
+
 char* chop_paren(char **buffer, char *endPtr)
 {
     if (**buffer != '(') {
@@ -294,9 +323,12 @@ char* chop_paren(char **buffer, char *endPtr)
     return new_expr;
 }
 
+double ANS = 0;
+
 bool parse_input(char *buffer, size_t buffer_count, Math *output)
 {
     remove_white_spaces(buffer, buffer_count);
+    strlwr(buffer);
 
     char *pos = buffer;
     size_t i = 0;
@@ -360,6 +392,17 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             list_free(parser.math.num_list);
             list_free(parser.math.oper_list);
             isnum = true;
+        }
+        else if (*pos == 'a') {
+            char *current = pos;
+            bool success = chop_word(&pos, "ans", 3);
+            if (! success) {
+                fprintf(stderr, "Error: Invalid word.");
+                exit(1);
+            }
+            isnum = true;
+            i = pos - current;
+            list_append(output->num_list, ANS);
         }
     }  
 
@@ -433,6 +476,7 @@ bool expected(char* input, double expected_output)
 {
     Parser parser;
     parser.expr = input;
+    parser.ans = 0;
     list_alloc(parser.math.num_list);
     list_alloc(parser.math.oper_list);
     parse_input(input, strlen(input) + 1, &parser.math);
@@ -448,6 +492,7 @@ bool expected(char* input, double expected_output)
 
     parse_expression(&parser);
     double output = do_the_math(parser.math);
+    ANS = output;
 
     list_free(parser.math.num_list);
     list_free(parser.math.oper_list);
@@ -524,6 +569,9 @@ void test()
         32 -(8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8,
         success
     );
+    EXPECTED("43 * 3", 43 * 3, success);
+    EXPECTED("Ans + 1", (43 * 3) + 1, success);
+    EXPECTED("3 * ans * (ans ^ -2 + 1.3)", 3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), success);
 
     if (success) {
         printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");
@@ -535,7 +583,7 @@ void test()
 
 int main(void)
 {
-#if 0
+#if 1
     test(); 
     return 0;
 #endif
@@ -546,6 +594,7 @@ int main(void)
     Parser parser;
     list_alloc(parser.math.num_list);
     list_alloc(parser.math.oper_list);
+    parser.ans = 0;
     double result;
 
     while (true)
@@ -558,6 +607,7 @@ int main(void)
         parse_expression(&parser);
 
         result = do_the_math(parser.math);
+        ANS = result;
 
         printf("Result: %lf\n", result);
 

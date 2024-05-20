@@ -10,6 +10,8 @@
 2. **'\*', '/', '%'**
 3. **'+', '-'**
 
+* **-Use "ans" to reference the result of the previous expression.**
+
 # Disclaimers
 
  1. **The error handling is very loose and almost non-existent but I'm hopefully going to try fixing that in the future.**

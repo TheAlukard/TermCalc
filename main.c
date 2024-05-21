@@ -187,7 +187,7 @@ double perform_operation(double num1, double num2, char operation)
         case '^': 
             return pow(num1, num2);
         default:
-            fprintf(stderr, "%s:%d:1 Invalid operation: '%c'", __FILE__, __LINE__, operation);
+            fprintf(stderr, "%s:%d:1 Invalid operation: '%c'\n", __FILE__, __LINE__, operation);
             exit(1);
     }
 }
@@ -317,8 +317,8 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
     if (*pos == 'e') {
         bool _exit = chop_word(&pos, "exit", 4);
         if (! _exit) {
-            fprintf(stderr, "Error: Invalid word.");
-            exit(1);
+            fprintf(stderr, "Error: Invalid input.\n");
+            return false;
         }
         exit(0);
     }
@@ -337,10 +337,7 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
         else if (str_contains(operators, operator_count, *pos)) {
             if (! isnum) {
                 fprintf(stderr, "Error: Operator wasn't preceeded by a number\n");
-                list_print((output->num_list), "%lf");
-                list_print((output->oper_list), "%c");
-                printf("buff: %s\n", pos);
-                exit(1);
+                return false;
             }
 
             list_push(output->oper_list, *pos);
@@ -359,8 +356,8 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             Parser parser;
             parser.expr = chop_paren(&pos, buffer + buffer_count);
             if (parser.expr == NULL) {
-                fprintf(stderr, "Error: Invalid parenthesis.");
-                exit(1);
+                fprintf(stderr, "Error: Invalid parenthesis.\n");
+                return false;
             }
             i = pos - current;
             list_alloc(parser.math.num_list);
@@ -382,16 +379,16 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             char *current = pos;
             bool success = chop_word(&pos, "ans", 3);
             if (! success) {
-                fprintf(stderr, "Error: Invalid word.");
-                exit(1);
+                fprintf(stderr, "Error: Invalid input.\n");
+                return false;
             }
             isnum = true;
             i = pos - current;
             list_push(output->num_list, ANS);
         }
         else {
-            fprintf(stderr, "Error: Invalid input.");
-            exit(1);
+            fprintf(stderr, "Error: Invalid input.\n");
+            return false;
         }
     }  
 
@@ -626,13 +623,16 @@ int main(int argc, char* argv[])
         fgets(buffer, buffer_count, stdin);
         parser.expr = buffer;
 
-        parse_input(buffer, buffer_count, &parser.math); 
-        parse_expression(&parser);
+        bool parsed = parse_input(buffer, buffer_count, &parser.math); 
 
-        result = do_the_math(parser.math);
-        ANS = result;
+        if (parsed) {
+            parse_expression(&parser);
 
-        printf("Result: %lf\n", result);
+            result = do_the_math(parser.math);
+            ANS = result;
+
+            printf("Result: %lf\n", result);
+        } 
 
         list_clear(parser.math.num_list);
         list_clear(parser.math.oper_list);

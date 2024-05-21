@@ -6,6 +6,20 @@
 #include <string.h>
 #include <math.h>
 
+#ifdef linux 
+    char* strlwr(char *str)
+    {
+        unsigned char *p = (unsigned char *)str;
+
+        while (*p) {
+            *p = tolower((unsigned char)*p);
+            p++;
+        }
+
+        return str;
+    }
+#endif
+
 #define array_len(array) (sizeof(array) / sizeof((array)[0]))
 
 #define DEFAULT_LIST_CAP 32

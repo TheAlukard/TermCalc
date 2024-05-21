@@ -1,15 +1,15 @@
 # Build
-**Windows:**
+### Windows:
 
     mingw32-make
 
-**Linux:**
+### Linux:
 
-    make
+**Currently unavailable.**
 
-**Provide the 'test' flag if you want to run tests**
+### MacOS:
 
-    ./TermCalc test
+**Currently unavailable.**
 
 # Usage
 
@@ -19,6 +19,11 @@
 3. **'+', '-'**
 
 * **-Use "ans" to reference the result of the previous expression.**
+
+**Provide the 'test' flag if you want to run tests**
+
+    ./TermCalc test
+
 
 # Disclaimers
 

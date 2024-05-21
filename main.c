@@ -673,34 +673,148 @@ bool expected(char* input, double expected_output)
 void test()
 {
     bool success = true;
-    EXPECTED("3 + 3", 6, success);
-    EXPECTED("3 - 3", 0, success);
-    EXPECTED("3 * 3", 9, success);
-    EXPECTED("3 / 3", 1, success);
-    EXPECTED("3 ^ 3", 27, success);
-    EXPECTED("5 % 3", 2, success);
-    EXPECTED("5 - -3", 8, success);
-    EXPECTED("5 + -(2 * 3)", -1, success);
-    EXPECTED("5 * -1", -5, success);
-    EXPECTED("3 * 7 + 46 % 4", 23, success);
-    EXPECTED("5 * 2 ^ 3 / 4 + 1 * 5", 15, success);
-    EXPECTED("5 * 2 ^ 3 ^ 4 + 1 +  79", 20560, success);
-    EXPECTED("1 + 3 *  9", 28, success);
-    EXPECTED("64 ^ 0 / 2 + 6", 6.5f, success);
-    EXPECTED("4 ^ 2 / 8 + 1", 3, success);
-    EXPECTED("1 / 0.5 + 6", 8, success);
-    EXPECTED("3 + 5 / 3 ^ 4 * 9 - 2 * 1", 1.55555555555556, success);
-    EXPECTED("3 + 3 + 3 + 3 + 3 ^ 0 + 3", 16, success);
-    EXPECTED("1 / 0.3 - 0.1 * 3 ^ 2", 2.43333333333333, success);
-    EXPECTED("0 / 2 * 1", 0, success);
-    EXPECTED("0/1*2", 0, success);
-    EXPECTED("2 ^ 3 + 2", 10, success);
-    EXPECTED("2 ^ (3 + 2)", 32, success);
-    EXPECTED("9 / 3 - 2", 1, success);
-    EXPECTED("9 / (3 - 2)", 9, success);
-    EXPECTED("9 + 2 ^ 2 + 9 * 3 - 1 - 1", 9 + pow(2, 2) + 9 * 3 -1 -1, success);
-    EXPECTED("9 + 2 ^ (2 + 9 * 3 - 1 - 1)", 9 + pow(2, 2 + 9 * 3 - 1 - 1), success);
-    EXPECTED("9 + 2 ^ (2 + 9 * (3 - 1) - 1)", 9 + pow(2, 2 + 9 * (3 - 1) - 1), success);
+    EXPECTED(
+        "3 + 3",
+        6,
+        success
+    );
+    EXPECTED(
+        "3 - 3",
+        0,
+        success
+    );
+    EXPECTED(
+        "3 * 3",
+        9,
+        success
+    );
+    EXPECTED(
+        "3 / 3",
+        1,
+        success
+    );
+    EXPECTED(
+        "3 ^ 3",
+        27,
+        success
+    );
+    EXPECTED(
+        "5 % 3",
+        2,
+        success
+    );
+    EXPECTED(
+        "5 - -3",
+        8,
+        success
+    );
+    EXPECTED(
+        "5 + -(2 * 3)",
+        -1,
+        success
+    );
+    EXPECTED(
+        "5 * -1",
+        -5,
+        success
+    );
+    EXPECTED(
+        "3 * 7 + 46 % 4",
+        23,
+        success
+    );
+    EXPECTED(
+        "5 * 2 ^ 3 / 4 + 1 * 5",
+        15,
+        success
+    );
+    EXPECTED(
+        "5 * 2 ^ 3 ^ 4 + 1 +  79",
+        20560,
+        success
+    );
+    EXPECTED(
+        "1 + 3 *  9",
+        28,
+        success
+    );
+    EXPECTED(
+        "64 ^ 0 / 2 + 6",
+        6.5f,
+        success
+    );
+    EXPECTED(
+        "4 ^ 2 / 8 + 1",
+        3,
+        success
+    );
+    EXPECTED(
+        "1 / 0.5 + 6",
+        8,
+        success
+    );
+    EXPECTED(
+        "3 + 5 / 3 ^ 4 * 9 - 2 * 1",
+        1.55555555555556,
+        success
+    );
+    EXPECTED(
+        "3 + 3 + 3 + 3 + 3 ^ 0 + 3",
+        16,
+        success
+    );
+    EXPECTED(
+        "1 / 0.3 - 0.1 * 3 ^ 2",
+        2.43333333333333,
+        success
+    );
+    EXPECTED(
+        "0 / 2 * 1",
+        0,
+        success
+    );
+    EXPECTED(
+        "0/1*2",
+        0,
+        success
+    );
+    EXPECTED(
+        "2 ^ 3 + 2",
+        10,
+        success
+    );
+    EXPECTED(
+        "2 ^ (3 + 2)",
+        32,
+        success
+    );
+    EXPECTED(
+        "9 / 3 - 2",
+        1,
+        success
+    );
+    EXPECTED(
+        "9 / (3 - 2)",
+        9,
+        success
+    );
+    EXPECTED(
+        "9 + 2 ^ 2 + 9 * 3 - 1 - 1",
+        9 + pow(2, 2) + 9 * 3 -1 -1, 
+        success
+    );
+    EXPECTED(
+        "9 + 2 ^ (2 + 9 * 3 - 1 - 1)",
+        9 + pow(2,
+        2 + 9 * 3 - 1 - 1), 
+        success
+    );
+    EXPECTED(
+        "9 + 2 ^ (2 + 9 * (3 - 1) - 1)",
+        9 + pow(2,
+        2 + 9 * (3 - 1) - 1),
+        success
+    );
     EXPECTED(
         "0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))", 
         0.f / (3 - 1) + 9 * (pow(2, 1+1) + 3 * (3 * (1 - 1 + (3.f / 1)))), 
@@ -716,11 +830,31 @@ void test()
         32 -(8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8,
         success
     );
-    EXPECTED("43 * 3", 43 * 3, success);
-    EXPECTED("Ans + 1", (43 * 3) + 1, success);
-    EXPECTED("3 * ans * (ans ^ -2 + 1.3)", 3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), success);
-    EXPECTED("\\sqrt(42)", sqrt(42), success);
-    EXPECTED("\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))", sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))), success);
+    EXPECTED(
+        "43 * 3",
+        43 * 3,
+        success
+    );
+    EXPECTED(
+        "Ans + 1",
+        (43 * 3) + 1,
+        success
+    );
+    EXPECTED(
+        "3 * ans * (ans ^ -2 + 1.3)",
+        3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), 
+        success
+    );
+    EXPECTED(
+        "\\sqrt(42)",
+        sqrt(42),
+        success
+    );
+    EXPECTED(
+        "\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))",
+        sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))),
+        success
+    );
     EXPECTED(
         "\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))", 
         sqrt(30) / pow(tan(50.3), sin(43) / cos(44)), 

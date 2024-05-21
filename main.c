@@ -41,7 +41,7 @@
     list.capacity = 0;                                                         \
   } while (0)
 
-#define list_append(list, item)                                                \
+#define list_push(list, item)                                                  \
   do {                                                                         \
     if (list.count >= list.capacity) {                                         \
       list.capacity *= 2;                                                      \
@@ -51,17 +51,19 @@
     list.count += 1;                                                           \
   } while (0)
 
-#define list_pop(list)                                                         \
-  do {                                                                         \
+#define list_pop(list, type) ({                                                \
+    type popped;                                                               \
     if (list.count > 0) {                                                      \
       list.count -= 1;                                                         \
-      list.items[list.count] = 0;                                              \
+      popped = list.items[list.count];                                         \
+      memset(&(list.items[list.count]), 0, sizeof(type) * 1);                  \
       if (list.count < list.capacity / 3) {                                    \
         list.capacity /= 2;                                                    \
         list.items = realloc(list.items, list.capacity * sizeof(*list.items)); \
       }                                                                        \
     }                                                                          \
-  } while (0)
+    popped;                                                                    \
+})
 
 #define list_copy(dest, src, start, count)                                     \
   do {                                                                         \
@@ -128,48 +130,10 @@ typedef struct {
     double ans;
 } Parser;
 
-typedef struct {
-    double *items;
-    size_t count;
-    size_t capacity;
-} Stack;
-
-typedef struct {
-    char *items;
-    size_t count;
-    size_t capacity;
-} Stackc;
-
 bool parse_input(char *buffer, size_t buffer_count, Math *output);
 void parse_operations(Parser *parser, char *ops, size_t ops_count);
 void parse_expression(Parser *parser);
 double do_the_math(const Math math);
-
-void stack_push(Stack *stack, double item)
-{
-    list_append((*stack), item);
-}
-
-double stack_pop(Stack *stack)
-{
-    double removed = stack->items[stack->count - 1];
-    list_pop((*stack));
-
-    return removed;
-}
-
-void stackc_push(Stackc *stack, char item)
-{
-    list_append((*stack), item);
-}
-
-char stackc_pop(Stackc *stack)
-{
-    char removed = stack->items[stack->count - 1];
-    list_pop((*stack));
-
-    return removed;
-}
 
 void print_math(const Math math)
 {
@@ -359,7 +323,7 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
                 num *= -1;
                 negate = false;
             }
-            list_append(output->num_list, num);
+            list_push(output->num_list, num);
         }
         else if (str_contains(operators, operator_count, *pos)) {
             if (! isnum) {
@@ -370,7 +334,7 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
                 exit(1);
             }
 
-            list_append(output->oper_list, *pos);
+            list_push(output->oper_list, *pos);
             isnum = false;
             i++;
             pos++;
@@ -399,7 +363,7 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
                 result *= -1;
                 negate = false;
             }
-            list_append(output->num_list, result);
+            list_push(output->num_list, result);
             free(parser.expr);
             list_free(parser.math.num_list);
             list_free(parser.math.oper_list);
@@ -414,12 +378,24 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             }
             isnum = true;
             i = pos - current;
-            list_append(output->num_list, ANS);
+            list_push(output->num_list, ANS);
         }
     }  
 
     return true;
 }
+
+typedef struct {
+    double *items;
+    size_t capacity;
+    size_t count;
+} Stackd;
+
+typedef struct {
+    char *items;
+    size_t capacity;
+    size_t count;
+} Stackc;
 
 void parse_operations(Parser *parser, char *ops, size_t ops_count)
 {
@@ -429,24 +405,24 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
         exit(1);
     }
 
-    Stack num_stack;
+    Stackd num_stack;
     Stackc oper_stack;
     list_alloc(num_stack);
     list_alloc(oper_stack);
-    stack_push(&num_stack, parser->math.num_list.items[0]);
+    list_push(num_stack, parser->math.num_list.items[0]);
 
     size_t j = 1;
     for (size_t i = 0; i < parser->math.oper_list.count; i++) {
         char operator = parser->math.oper_list.items[i];
         if (str_contains(ops, ops_count, operator)) {
-            double num = stack_pop(&num_stack);
+            double num = list_pop(num_stack, double);
             double result = perform_operation(num, parser->math.num_list.items[i + 1], operator);
-            stack_push(&num_stack, result);
+            list_push(num_stack, result);
             j = i + 2;
         }
         else {
-            stackc_push(&oper_stack, operator);
-            stack_push(&num_stack, parser->math.num_list.items[j]);
+            list_push(oper_stack, operator);
+            list_push(num_stack, parser->math.num_list.items[j]);
             j++;
         }
     }
@@ -473,8 +449,6 @@ void parse_expression(Parser *parser)
 
 double do_the_math(const Math math)
 {
-    // print_math(math);
-
     double result = math.num_list.items[0];
 
     for (size_t i = 1; i < math.num_list.count; i++) {

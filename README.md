@@ -1,11 +1,15 @@
 # Build
-**Run the following command to compile and run the program:**
+**Windows:**
 
-    .\build.ps1
+    mingw32-make
 
-**Provide the 'test' flag if you want to run tests instead**
+**Linux:**
 
-    .\build.ps1 test
+    make
+
+**Provide the 'test' flag if you want to run tests**
+
+    ./TermCalc test
 
 # Usage
 

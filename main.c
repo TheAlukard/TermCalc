@@ -314,6 +314,15 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
         negate = true;
     }
 
+    if (*pos == 'e') {
+        bool _exit = chop_word(&pos, "exit", 4);
+        if (! _exit) {
+            fprintf(stderr, "Error: Invalid word.");
+            exit(1);
+        }
+        exit(0);
+    }
+
     while (i < buffer_count && *pos != 0) {
         if (isdigit(*pos)) {
             double num = chop_num(&pos, buffer_count - i);
@@ -379,6 +388,10 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             isnum = true;
             i = pos - current;
             list_push(output->num_list, ANS);
+        }
+        else {
+            fprintf(stderr, "Error: Invalid input.");
+            exit(1);
         }
     }  
 

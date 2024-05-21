@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
-#include <stdarg.h>
 
 #ifdef linux 
     char* strlwr(char *str)

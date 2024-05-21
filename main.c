@@ -379,41 +379,40 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
     if (args == NULL) {
         return false;
     }
-    double arg1;
+    Parser parser;
+    parser.expr = args;
+    list_alloc(parser.math.num_list);
+    list_alloc(parser.math.oper_list);
+    bool success;
+
     switch (func) {
         case SQRT:
-            arg1 = chop_num(&args);
-            if (*args != '\0') {
-                return false;
-            } 
-            list_push((*output), arg1);
-            break;
+            // fall through
         case SIN:
-            arg1 = chop_num(&args);
-            if (*args != '\0') {
-                return false;
-            } 
-            list_push((*output), arg1);
-            break;
+            // fall through
         case COS:
-            arg1 = chop_num(&args);
-            if (*args != '\0') {
-                return false;
-            } 
-            list_push((*output), arg1);
-            break;
+            // fall through
         case TAN:
-            arg1 = chop_num(&args);
-            if (*args != '\0') {
-                return false;
+            success = parse_input(args, strlen(args), &parser.math);
+            if (! success) {
+                break;
             } 
-            list_push((*output), arg1);
+            parse_expression(&parser);
+            if (parser.math.num_list.count <= 0) {
+                success = false;
+                break;
+            }
+            list_push((*output), do_the_math(parser.math));
+            success = true;
             break;
         default:
             return false;
     }
 
-    return true;
+    list_free(parser.math.num_list);
+    list_free(parser.math.oper_list);
+
+    return success;
 }
 
 bool parse_input(char *buffer, size_t buffer_count, Math *output)
@@ -723,6 +722,16 @@ void test()
     EXPECTED("3 * ans * (ans ^ -2 + 1.3)", 3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), success);
     EXPECTED("\\sqrt(42)", sqrt(42), success);
     EXPECTED("\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))", sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))), success);
+    EXPECTED(
+        "\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))", 
+        sqrt(30) / pow(tan(50.3), sin(43) / cos(44)), 
+        success
+    );
+    EXPECTED(
+        "\\sqrt(\\sin(30) / 4.6 * (\\tan(30) / 30)) + 20 ^ 2 / 30 * (3 ^ 2 + 2)",
+        sqrt(sin(30) / 4.6 * (tan(30) / 30)) + pow(20, 2) / 30 * (pow(3, 2) + 2),
+        success
+    );
 
     if (success) {
         printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");

@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <stdarg.h>
 
 #ifdef linux 
     char* strlwr(char *str)
@@ -104,6 +105,8 @@
 
 #define list_clear(list) (list.count = 0)
 
+#define Unused(var) (void) (var)
+
 const char operators[] = "+-/*%^"; 
 #define operator_count ((sizeof(operators) / sizeof(operators[0])) - 1)
 
@@ -130,9 +133,30 @@ typedef struct {
     double ans;
 } Parser;
 
+typedef struct {
+    double *items;
+    size_t capacity;
+    size_t count;
+} Stackd;
+
+typedef struct {
+    char *items;
+    size_t capacity;
+    size_t count;
+} Stackc;
+
+typedef enum {
+    SQRT,
+    SIN,
+    COS,
+    TAN,
+    NOPE,
+} MathFunc;
+
 bool parse_input(char *buffer, size_t buffer_count, Math *output);
 void parse_operations(Parser *parser, char *ops, size_t ops_count);
 void parse_expression(Parser *parser);
+double parse_math_func(MathFunc func, Stackd *args);
 double do_the_math(const Math math);
 
 void print_math(const Math math)
@@ -192,7 +216,7 @@ double perform_operation(double num1, double num2, char operation)
     }
 }
 
-double chop_num(char **buffer, size_t buffer_count)
+double chop_num(char **buffer)
 {
     size_t count = 0;
     char *pos = *buffer;
@@ -299,7 +323,98 @@ char* chop_paren(char **buffer, char *endPtr)
     return new_expr;
 }
 
+#define ESC_CHAR '\\'
+
+MathFunc chop_func(char **buffer)
+{
+    if (**buffer != ESC_CHAR) {
+        return NOPE;
+    }
+
+    char *pos = (*buffer) + 1;
+    MathFunc func = NOPE;
+
+    if (*pos == '\0') {
+        return NOPE;
+    }
+
+    switch (*pos) {
+        case 's': 
+            if (chop_word(&pos, "sqrt", 4)) {
+                func = SQRT;
+            }
+            else if (chop_word(&pos, "sin", 3)) {
+                func = SIN;
+            }
+            break;
+        case 'c': 
+            if (chop_word(&pos, "cos", 3)) {
+                func = COS;
+            }
+            break;
+        case 't': 
+            if (chop_word(&pos, "tan", 3)) {
+                func = TAN;
+            }
+            break;
+
+    }
+
+    if (func != NOPE) {
+        *buffer = pos;
+    }
+
+    return func;
+}
+
 double ANS = 0;
+
+bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd *output)
+{
+    if (**buffer != '(') {
+        return false;
+    }
+
+    char *args = chop_paren(buffer, (*buffer) + buffer_count);
+    if (args == NULL) {
+        return false;
+    }
+    double arg1;
+    switch (func) {
+        case SQRT:
+            arg1 = chop_num(&args);
+            if (*args != '\0') {
+                return false;
+            } 
+            list_push((*output), arg1);
+            break;
+        case SIN:
+            arg1 = chop_num(&args);
+            if (*args != '\0') {
+                return false;
+            } 
+            list_push((*output), arg1);
+            break;
+        case COS:
+            arg1 = chop_num(&args);
+            if (*args != '\0') {
+                return false;
+            } 
+            list_push((*output), arg1);
+            break;
+        case TAN:
+            arg1 = chop_num(&args);
+            if (*args != '\0') {
+                return false;
+            } 
+            list_push((*output), arg1);
+            break;
+        default:
+            return false;
+    }
+
+    return true;
+}
 
 bool parse_input(char *buffer, size_t buffer_count, Math *output)
 {
@@ -325,7 +440,7 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
 
     while (i < buffer_count && *pos != 0) {
         if (isdigit(*pos)) {
-            double num = chop_num(&pos, buffer_count - i);
+            double num = chop_num(&pos);
             i = pos - buffer;
             isnum = true;
             if (negate) {
@@ -386,6 +501,25 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             i = pos - current;
             list_push(output->num_list, ANS);
         }
+        else if (*pos == ESC_CHAR) {
+            char *current = pos;
+            MathFunc func = chop_func(&pos);
+            if (func == NOPE) {
+                fprintf(stderr, "Invalid function.\n");
+                return false;
+            }
+            i = pos - current;
+            Stackd arg_list;
+            list_alloc(arg_list);
+            if (! chop_func_params(&pos, buffer_count - i, func, &arg_list)) {
+                fprintf(stderr, "Invalid function parameters.\n");
+                list_free(arg_list);
+                return false;
+            }
+            list_push(output->num_list, parse_math_func(func, &arg_list));
+            list_free(arg_list);
+            isnum = true;
+        }
         else {
             fprintf(stderr, "Error: Invalid input.\n");
             return false;
@@ -395,23 +529,11 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
     return true;
 }
 
-typedef struct {
-    double *items;
-    size_t capacity;
-    size_t count;
-} Stackd;
-
-typedef struct {
-    char *items;
-    size_t capacity;
-    size_t count;
-} Stackc;
 
 void parse_operations(Parser *parser, char *ops, size_t ops_count)
 {
     if (parser->math.oper_list.count != parser->math.num_list.count - 1) {
         fprintf(stderr, "%s:%d:1 Invalid input:\n", __FILE__, __LINE__);
-        print_math(parser->math);
         exit(1);
     }
 
@@ -447,6 +569,37 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
     list_transfer(parser->math.oper_list, oper_stack);
 }
 
+double parse_math_func(MathFunc func, Stackd *args)
+{
+    double result = 0;
+
+    switch (func) {
+        case SQRT:
+            if (args->count > 0) {
+                result =  sqrt(args->items[0]);
+            }
+            break;
+        case SIN:
+            if (args->count > 0) {
+                result =  sin(args->items[0]);
+            }
+            break;
+        case COS:
+            if (args->count > 0) {
+                result =  cos(args->items[0]);
+            }
+            break;
+        case TAN:
+            if (args->count > 0) {
+                result =  tan(args->items[0]);
+            }
+            break;
+        default:
+            break;
+    }
+
+    return result;
+}
 
 void parse_expression(Parser *parser)
 {
@@ -568,6 +721,8 @@ void test()
     EXPECTED("43 * 3", 43 * 3, success);
     EXPECTED("Ans + 1", (43 * 3) + 1, success);
     EXPECTED("3 * ans * (ans ^ -2 + 1.3)", 3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), success);
+    EXPECTED("\\sqrt(42)", sqrt(42), success);
+    EXPECTED("\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))", sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))), success);
 
     if (success) {
         printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");
@@ -579,8 +734,7 @@ void test()
 
 char* chop_arg(int *argc, char *(**argv))
 {
-    if (argc <= 0) return NULL;
-
+    if (*argc <= 0) return NULL;
 
     char* arg = **argv;
     *argv += 1;
@@ -592,6 +746,7 @@ char* chop_arg(int *argc, char *(**argv))
 int main(int argc, char* argv[])
 {
     char *program = chop_arg(&argc, &argv);
+    Unused(program);
     bool Test = false;
 
     if (argc > 0) {

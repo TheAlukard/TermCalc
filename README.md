@@ -20,6 +20,16 @@
 
 * **-Use "ans" to reference the result of the previous expression.**
 
+### You can use several math functions by escaping like this:
+    \sqrt(num)
+    
+    \sin(num)
+
+    \cos(num)
+
+    \tan(num)
+
+
 **Provide the 'test' flag if you want to run tests**
 
     ./TermCalc test

@@ -29,6 +29,10 @@
 
     \tan(num)
 
+    \min(num1, num2)
+
+    \max(num1, num2)
+
 
 **Provide the 'test' flag if you want to run tests**
 

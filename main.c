@@ -149,8 +149,13 @@ typedef enum {
     SIN,
     COS,
     TAN,
+    MIN,
+    MAX,
     NOPE,
 } MathFunc;
+
+#define Max(one, two) ((one) > (two) ? (one) : (two))
+#define Min(one, two) ((one) < (two) ? (one) : (two))
 
 bool parse_input(char *buffer, size_t buffer_count, Math *output);
 void parse_operations(Parser *parser, char *ops, size_t ops_count);
@@ -168,6 +173,7 @@ void print_math(const Math math)
             printf("    %c \n", math.oper_list.items[i]);
         }
     }
+    
     printf("\n");
 }
 
@@ -356,7 +362,14 @@ MathFunc chop_func(char **buffer)
                 func = TAN;
             }
             break;
-
+        case 'm':
+            if (chop_word(&pos, "min", 3)) {
+                func = MIN;
+            }
+            else if (chop_word(&pos, "max", 3)) {
+                func = MAX;
+            }
+            break;
     }
 
     if (func != NOPE) {
@@ -404,8 +417,71 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
             list_push((*output), do_the_math(parser.math));
             success = true;
             break;
+        case MIN:
+            // fall through
+        case MAX:
+            size_t seperation = 0;
+            bool cancomma = true;
+            size_t countered = 0;
+            for (size_t i = 0; args[i] != '\0'; i++) {
+                switch (args[i]) {
+                    case '(':
+                        countered++;
+                        cancomma = false;
+                        break;
+                    case ')':
+                        countered--;
+                        if (countered == 0) {
+                            cancomma = true;
+                        }
+                        else if (countered < 0) {
+                            success = false;
+                            goto parsing_args;
+                        }
+                        break;
+                    case ',':
+                        if (cancomma) {
+                            seperation = i;
+                            success = true;
+                            goto parsing_args;
+                        }
+                        break;
+                }
+            }
+parsing_args:
+            if (! success) {
+                break;
+            }
+            char *temp_buff = (char*)malloc(sizeof(char) * (seperation + 1));
+            temp_buff[seperation] = '\0';
+            memcpy(temp_buff, args, seperation);
+            success = parse_input(temp_buff, seperation, &parser.math);
+            free(temp_buff);
+            if (! success) {
+                break;
+            }
+            parse_expression(&parser);
+            if (parser.math.num_list.capacity <= 0) {
+                success = false;
+                break;
+            }
+            list_push((*output), do_the_math(parser.math));
+            list_clear(parser.math.num_list);
+            list_clear(parser.math.oper_list);
+            success = parse_input(args + seperation + 1, strlen(args) - seperation - 1, &parser.math);
+            if (! success) {
+                break;
+            }
+            parse_expression(&parser);
+            if (parser.math.num_list.capacity <= 0) {
+                success = false;
+                break;
+            }
+            list_push((*output), do_the_math(parser.math));
+            break;
         default:
-            return false;
+            success = false; 
+            break;
     }
 
     list_free(parser.math.num_list);
@@ -590,6 +666,16 @@ double parse_math_func(MathFunc func, Stackd *args)
         case TAN:
             if (args->count > 0) {
                 result =  tan(args->items[0]);
+            }
+            break;
+        case MIN:
+            if (args->count > 0) {
+                result = Min(args->items[0], args->items[1]);
+            }
+            break;
+        case MAX:
+            if (args->count > 0) {
+                result = Max(args->items[0], args->items[1]);
             }
             break;
         default:
@@ -865,6 +951,20 @@ void test()
         sqrt(sin(30) / 4.6 * (tan(30) / 30)) + pow(20, 2) / 30 * (pow(3, 2) + 2),
         success
     );
+    EXPECTED(
+        "\\max(3, 7)",
+        Max(3, 7),
+        success
+    );
+    EXPECTED(
+        "\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
+        Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123)))),
+        success
+    );
+    EXPECTED(
+        "64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2", 
+        64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2),
+        success);
 
     if (success) {
         printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");

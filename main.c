@@ -152,13 +152,15 @@ typedef enum {
 #define Min(one, two) ((one) < (two) ? (one) : (two))
 
 bool parse_input(String buffer, Math *output);
-void parse_operations(Parser *parser, char *ops, size_t ops_count);
 void parse_expression(Parser *parser);
 double parse_math_func(MathFunc func, Stackd *args);
-double do_the_math(const Math math);
-void chop_char(String *buffer);
-void chop_char_trim(String *buffer);
-void trim_left(String *str);
+void parse_operations(Parser *parser, char *ops, size_t ops_count);
+static inline double do_the_math(const Math math);
+static inline void chop_char(String *buffer);
+static inline void chop_char_trim(String *buffer);
+static inline void trim_left(String *str);
+
+#define FORCE_INLINE __attribute__((always_inline)) static inline
 
 void print_math(const Math math)
 {
@@ -174,7 +176,7 @@ void print_math(const Math math)
     printf("\n");
 }
 
-void string_lower(String *string)
+FORCE_INLINE void string_lower(String *string)
 {
     for (size_t i = 0; i < string->len; i++) {
         if (string->str[i] >= 65 && string->str[i] <= 90) {
@@ -183,7 +185,7 @@ void string_lower(String *string)
     }
 }
 
-bool str_contains(const char* str, size_t count, char item)
+FORCE_INLINE bool str_contains(const char* str, size_t count, char item)
 {
     for (size_t i = 0; i < count; i++) {
         if (str[i] == item) return true;
@@ -192,7 +194,7 @@ bool str_contains(const char* str, size_t count, char item)
     return false;
 }
 
-double perform_operation(double num1, double num2, char operation)
+FORCE_INLINE double perform_operation(double num1, double num2, char operation)
 {
     switch(operation) {
         case '+': 
@@ -213,7 +215,7 @@ double perform_operation(double num1, double num2, char operation)
     }
 }
 
-void chop_char(String *buffer)
+FORCE_INLINE void chop_char(String *buffer)
 {
     if (buffer->len == 0) return;
 
@@ -221,14 +223,14 @@ void chop_char(String *buffer)
     buffer->len -= 1;
 }
 
-void trim_left(String *str)
+FORCE_INLINE void trim_left(String *str)
 {
     while (str->len > 0 && isspace(*str->str)) {
         chop_char(str);
     }
 }
 
-void chop_char_trim(String *buffer)
+FORCE_INLINE void chop_char_trim(String *buffer)
 {
     chop_char(buffer);
     trim_left(buffer);
@@ -732,7 +734,7 @@ void parse_expression(Parser *parser)
 }
 
 
-double do_the_math(const Math math)
+FORCE_INLINE double do_the_math(const Math math)
 {
     double result = math.num_list.items[0];
 

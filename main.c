@@ -422,7 +422,7 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
         case MAX:
             size_t seperation = 0;
             bool cancomma = true;
-            size_t countered = 0;
+            int64_t countered = 0;
             for (size_t i = 0; args[i] != '\0'; i++) {
                 switch (args[i]) {
                     case '(':

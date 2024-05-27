@@ -6,20 +6,6 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef linux 
-    char* strlwr(char *str)
-    {
-        unsigned char *p = (unsigned char *)str;
-
-        while (*p) {
-            *p = tolower((unsigned char)*p);
-            p++;
-        }
-
-        return str;
-    }
-#endif
-
 #define array_len(array) (sizeof(array) / sizeof((array)[0]))
 
 #define DEFAULT_LIST_CAP 32
@@ -186,6 +172,15 @@ void print_math(const Math math)
     }
     
     printf("\n");
+}
+
+void string_lower(String *string)
+{
+    for (size_t i = 0; i < string->len; i++) {
+        if (string->str[i] >= 65 && string->str[i] <= 90) {
+            string->str[i] = string->str[i] + 32;
+        }
+    }
 }
 
 bool str_contains(const char* str, size_t count, char item)
@@ -544,7 +539,7 @@ bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
 bool parse_input(String buffer, Math *output)
 {
     trim_left(&buffer);
-    strlwr(buffer.str);
+    string_lower(&buffer);
 
     bool isnum = false;
     bool negate = false;

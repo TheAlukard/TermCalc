@@ -160,7 +160,7 @@ static inline void chop_char(String *buffer);
 static inline void chop_char_trim(String *buffer);
 static inline void trim_left(String *str);
 
-#define FORCE_INLINE __attribute__((always_inline)) static inline
+#define INLINE __attribute__((always_inline)) static inline
 
 void print_math(const Math math)
 {
@@ -176,7 +176,7 @@ void print_math(const Math math)
     printf("\n");
 }
 
-FORCE_INLINE void string_lower(String *string)
+INLINE void string_lower(String *string)
 {
     for (size_t i = 0; i < string->len; i++) {
         if (string->str[i] >= 65 && string->str[i] <= 90) {
@@ -185,7 +185,7 @@ FORCE_INLINE void string_lower(String *string)
     }
 }
 
-FORCE_INLINE bool str_contains(const char* str, size_t count, char item)
+INLINE bool str_contains(const char* str, size_t count, char item)
 {
     for (size_t i = 0; i < count; i++) {
         if (str[i] == item) return true;
@@ -194,7 +194,7 @@ FORCE_INLINE bool str_contains(const char* str, size_t count, char item)
     return false;
 }
 
-FORCE_INLINE double perform_operation(double num1, double num2, char operation)
+INLINE double perform_operation(double num1, double num2, char operation)
 {
     switch(operation) {
         case '+': 
@@ -215,7 +215,7 @@ FORCE_INLINE double perform_operation(double num1, double num2, char operation)
     }
 }
 
-FORCE_INLINE void chop_char(String *buffer)
+INLINE void chop_char(String *buffer)
 {
     if (buffer->len == 0) return;
 
@@ -223,14 +223,14 @@ FORCE_INLINE void chop_char(String *buffer)
     buffer->len -= 1;
 }
 
-FORCE_INLINE void trim_left(String *str)
+INLINE void trim_left(String *str)
 {
     while (str->len > 0 && isspace(*str->str)) {
         chop_char(str);
     }
 }
 
-FORCE_INLINE void chop_char_trim(String *buffer)
+INLINE void chop_char_trim(String *buffer)
 {
     chop_char(buffer);
     trim_left(buffer);
@@ -734,7 +734,7 @@ void parse_expression(Parser *parser)
 }
 
 
-FORCE_INLINE double do_the_math(const Math math)
+INLINE double do_the_math(const Math math)
 {
     double result = math.num_list.items[0];
 
@@ -1030,20 +1030,6 @@ char* chop_arg(int *argc, char *(**argv))
     argc -= 1;
 
     return arg;
-}
-
-int main2(void)
-{
-    char str[] = "Hello world";
-    size_t len = strlen(str);
-    String buffer = {.str = str, .len = len};
-
-    while (buffer.len > 0) {
-        printf("%c\n", *buffer.str);
-        chop_char(&buffer);
-    }    
-
-    return 0;
 }
 
 int main(int argc, char* argv[])

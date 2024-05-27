@@ -26,88 +26,90 @@
 
 #define list_alloc(list)                                                       \
   do {                                                                         \
-    list.capacity = DEFAULT_LIST_CAP;                                          \
-    list.count = 0;                                                            \
-    list.items = malloc(list.capacity * sizeof(*list.items));                  \
+    (list).capacity = DEFAULT_LIST_CAP;                                        \
+    (list).count = 0;                                                          \
+    (list).items = malloc((list).capacity * sizeof(*(list).items));            \
   } while (0)
 
 #define list_free(list)                                                        \
   do {                                                                         \
-    if (list.items != NULL) {                                                  \
-      free(list.items);                                                        \
-      list.items = NULL;                                                       \
+    if ((list).items != NULL) {                                                \
+      free((list).items);                                                      \
+      (list).items = NULL;                                                     \
     }                                                                          \
-    list.count = 0;                                                            \
-    list.capacity = 0;                                                         \
+    (list).count = 0;                                                          \
+    (list).capacity = 0;                                                       \
   } while (0)
 
-#define list_push(list, item)                                                  \
-  do {                                                                         \
-    if (list.count >= list.capacity) {                                         \
-      list.capacity *= 2;                                                      \
-      list.items = realloc(list.items, list.capacity * sizeof(*list.items));   \
-    }                                                                          \
-    list.items[list.count] = item;                                             \
-    list.count += 1;                                                           \
+#define list_push(list, item)                                                          \
+  do {                                                                                 \
+    if ((list).count >= (list).capacity) {                                             \
+      (list).capacity *= 2;                                                            \
+      (list).items = realloc((list).items, (list).capacity * sizeof(*(list).items));   \
+    }                                                                                  \
+    (list).items[(list).count] = item;                                                 \
+    (list).count += 1;                                                                 \
   } while (0)
 
-#define list_pop(list, type) ({                                                \
-    type popped;                                                               \
-    if (list.count > 0) {                                                      \
-      list.count -= 1;                                                         \
-      popped = list.items[list.count];                                         \
-      memset(&(list.items[list.count]), 0, sizeof(type) * 1);                  \
-      if (list.count < list.capacity / 3) {                                    \
-        list.capacity /= 2;                                                    \
-        list.items = realloc(list.items, list.capacity * sizeof(*list.items)); \
-      }                                                                        \
-    }                                                                          \
-    popped;                                                                    \
+#define list_pop(list, type) ({                                                         \
+    type popped;                                                                        \
+    if ((list).count > 0) {                                                             \
+      (list).count -= 1;                                                                \
+      popped = (list).items[(list).count];                                              \
+      memset(&((list).items[(list).count]), 0, sizeof(type) * 1);                       \
+      if ((list).count < (list).capacity / 3) {                                         \
+        (list).capacity /= 2;                                                           \
+        (list).items = realloc((list).items, (list).capacity * sizeof(*(list).items));  \
+      }                                                                                 \
+    }                                                                                   \
+    popped;                                                                             \
 })
 
 #define list_copy(dest, src, start, count)                                     \
   do {                                                                         \
-    if (start < 0) {                                                           \
+    if ((start) < 0) {                                                         \
       break;                                                                   \
     }                                                                          \
-    size_t i = start;                                                          \
+    size_t i = (start);                                                        \
     size_t j = 0;                                                              \
-    while (i < count && i < src.count && j < dest.count) {                     \
-      dest.items[j] = src.items[i];                                            \
+    while (i < (count) && i < (src).count && j < (dest).count) {               \
+      (dest).items[j] = (src).items[i];                                        \
       i += 1;                                                                  \
       j += 1;                                                                  \
     }                                                                          \
   } while (0)
 
-#define list_transfer(dest, src)                                               \
-  do {                                                                         \
-    if (dest.items != NULL) {                                                  \
-      free(dest.items);                                                        \
-      dest.items = NULL;                                                       \
-    }                                                                          \
-    dest.items = src.items;                                                    \
-    dest.capacity = src.capacity;                                              \
-    dest.count = src.count;                                                    \
+#define list_transfer(dest, src)                                                 \
+  do {                                                                           \
+    if ((dest).items != NULL) {                                                  \
+      free((dest).items);                                                        \
+      (dest).items = NULL;                                                       \
+    }                                                                            \
+    (dest).items = (src).items;                                                  \
+    (dest).capacity = (src).capacity;                                            \
+    (dest).count = (src).count;                                                  \
   } while (0)
 
 #define list_print(list, format)                                               \
   do {                                                                         \
     printf("[");                                                               \
-    for (size_t i = 0; i < list.count; i++) {                                  \
-      printf(format, list.items[i]);                                           \
-      if (i < list.count - 1) {                                                \
+    for (size_t i = 0; i < (list).count; i++) {                                \
+      printf(format, (list).items[i]);                                         \
+      if (i < (list).count - 1) {                                              \
         printf(", ");                                                          \
       }                                                                        \
     }                                                                          \
     printf("]\n");                                                             \
   } while (0)
 
-#define list_clear(list) (list.count = 0)
+#define list_clear(list) ((list).count = 0)
 
 #define Unused(var) (void) (var)
 
 const char operators[] = "+-/*%^"; 
 #define operator_count ((sizeof(operators) / sizeof(operators[0])) - 1)
+
+double ANS = 0;
 
 typedef struct {
     double *items;
@@ -379,7 +381,46 @@ MathFunc chop_func(char **buffer)
     return func;
 }
 
-double ANS = 0;
+char* chop_expr(char **buffer, size_t buffer_count)
+{
+    int64_t countered = 0;
+    bool stop = true;
+    char *pos = *buffer;
+    char *expr = NULL;
+    for (size_t i = 0; *pos != '\0' && i < buffer_count; i++) {
+        if (*pos == '(') {
+            countered++;
+            stop = false;
+            pos++;
+        }
+        else if (*pos == ')') {
+            countered--;
+            if (countered == 0) {
+                stop = true;
+            }
+            else if (countered < 0) {
+                return expr;
+            }
+            pos++;
+        }
+        else if (stop == true && *pos == ',') {
+            break;
+        }
+        else {
+            pos++;
+        }
+    }
+
+    if (stop) {
+        size_t size = pos - (*buffer);
+        expr = (char*)malloc((size + 1) * sizeof(char));
+        memcpy(expr, *buffer, size);
+        expr[size] = '\0';
+        *buffer = pos;
+    }
+
+    return expr;
+}
 
 bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd *output)
 {
@@ -387,10 +428,11 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
         return false;
     }
 
-    char *args = chop_paren(buffer, (*buffer) + buffer_count);
-    if (args == NULL) {
+    char *arguments = chop_paren(buffer, (*buffer) + buffer_count);
+    if (arguments == NULL) {
         return false;
     }
+    char *args = arguments;
     Parser parser;
     parser.expr = args;
     list_alloc(parser.math.num_list);
@@ -414,70 +456,61 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
                 success = false;
                 break;
             }
-            list_push((*output), do_the_math(parser.math));
+            list_push(*output, do_the_math(parser.math));
             success = true;
             break;
         case MIN:
             // fall through
         case MAX:
-            size_t seperation = 0;
-            bool cancomma = true;
-            int64_t countered = 0;
-            for (size_t i = 0; args[i] != '\0'; i++) {
-                switch (args[i]) {
-                    case '(':
-                        countered++;
-                        cancomma = false;
-                        break;
-                    case ')':
-                        countered--;
-                        if (countered == 0) {
-                            cancomma = true;
-                        }
-                        else if (countered < 0) {
-                            success = false;
-                            goto parsing_args;
-                        }
-                        break;
-                    case ',':
-                        if (cancomma) {
-                            seperation = i;
-                            success = true;
-                            goto parsing_args;
-                        }
-                        break;
+                char *arg1;
+                char *arg2;
+                arg1 = chop_expr(&args, strlen(args));
+                if (arg1 == NULL || *args != ',') {
+                    success = false;
+                    goto MaxDefer;
                 }
-            }
-parsing_args:
-            if (! success) {
-                break;
-            }
-            char *temp_buff = (char*)malloc(sizeof(char) * (seperation + 1));
-            temp_buff[seperation] = '\0';
-            memcpy(temp_buff, args, seperation);
-            success = parse_input(temp_buff, seperation, &parser.math);
-            free(temp_buff);
-            if (! success) {
-                break;
-            }
-            parse_expression(&parser);
-            if (parser.math.num_list.capacity <= 0) {
-                success = false;
-                break;
-            }
-            list_push((*output), do_the_math(parser.math));
-            list_clear(parser.math.num_list);
-            list_clear(parser.math.oper_list);
-            success = parse_input(args + seperation + 1, strlen(args) - seperation - 1, &parser.math);
-            if (! success) {
-                break;
-            }
-            parse_expression(&parser);
-            if (parser.math.num_list.capacity <= 0) {
-                success = false;
-                break;
-            }
-            list_push((*output), do_the_math(parser.math));
+                size_t remaining = &args[strlen(args) - 1] - args;
+                args += 1;
+                arg2 = chop_expr(&args, remaining);
+                if (arg2 == NULL) {
+                    success = false;
+                    goto MaxDefer;
+                }
+
+                if (! parse_input(arg1, strlen(arg1), &parser.math)) {
+                    success = false;
+                    goto MaxDefer;
+                }
+
+                parse_expression(&parser);
+                if (parser.math.num_list.count <= 0) {
+                    success = false;
+                    goto MaxDefer;
+                }
+
+                list_push(*output, do_the_math(parser.math));
+
+                list_clear(parser.math.num_list);
+                list_clear(parser.math.oper_list);
+
+                if (! parse_input(arg2, strlen(arg2), &parser.math)) {
+                    success = false;
+                    goto MaxDefer;
+                }
+
+                parse_expression(&parser);
+                if (parser.math.num_list.count <= 0) {
+                    success = false;
+                    goto MaxDefer;
+                }
+
+                list_push(*output, do_the_math(parser.math));
+
+                success = true;
+
+            MaxDefer:
+                free(arg1);
+                free(arg2);
             break;
         default:
             success = false; 
@@ -486,6 +519,7 @@ parsing_args:
 
     list_free(parser.math.num_list);
     list_free(parser.math.oper_list);
+    free(arguments);
 
     return success;
 }

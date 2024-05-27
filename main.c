@@ -129,7 +129,12 @@ typedef struct {
 } Math;
 
 typedef struct {
-    char *expr;
+    char *str;
+    size_t len;
+} String;
+
+typedef struct {
+    String expr;
     Math math;
     double ans;
 } Parser;
@@ -157,13 +162,17 @@ typedef enum {
 } MathFunc;
 
 #define Max(one, two) ((one) > (two) ? (one) : (two))
+
 #define Min(one, two) ((one) < (two) ? (one) : (two))
 
-bool parse_input(char *buffer, size_t buffer_count, Math *output);
+bool parse_input(String buffer, Math *output);
 void parse_operations(Parser *parser, char *ops, size_t ops_count);
 void parse_expression(Parser *parser);
 double parse_math_func(MathFunc func, Stackd *args);
 double do_the_math(const Math math);
+void chop_char(String *buffer);
+void chop_char_trim(String *buffer);
+void trim_left(String *str);
 
 void print_math(const Math math)
 {
@@ -188,20 +197,6 @@ bool str_contains(const char* str, size_t count, char item)
     return false;
 }
 
-void remove_white_spaces(char* str, size_t count)
-{
-    size_t i = 0;
-    for (size_t j = 0; j < count - 1; j++) {
-        while (j < count - 1 && isspace(str[j])) {
-            j++; 
-        }
-        str[i] = str[j];
-        if (i != j) str[j] = ' ';
-        i++;
-    }
-    memset(str + i, 0, count - (i + 1));
-}
-
 double perform_operation(double num1, double num2, char operation)
 {
     switch(operation) {
@@ -223,17 +218,37 @@ double perform_operation(double num1, double num2, char operation)
     }
 }
 
-double chop_num(char **buffer)
+void chop_char(String *buffer)
+{
+    if (buffer->len == 0) return;
+
+    buffer->str += 1;
+    buffer->len -= 1;
+}
+
+void trim_left(String *str)
+{
+    while (str->len > 0 && isspace(*str->str)) {
+        chop_char(str);
+    }
+}
+
+void chop_char_trim(String *buffer)
+{
+    chop_char(buffer);
+    trim_left(buffer);
+}
+
+double chop_num(String *buffer)
 {
     size_t count = 0;
-    char *pos = *buffer;
-    char *start = *buffer;
     bool isdot = false;
-    while (*pos != 0) {
-        if (isdigit(*pos)) {
-            start = pos;
-            while (*pos != 0 && (isdigit(*pos) == true || *pos == '.')) {
-                if (*pos == '.') {
+    String pos = *buffer;
+    trim_left(&pos);
+    while (pos.len > 0) {
+        if (isdigit(*pos.str)) {
+            while (pos.len > 0 && (isdigit(*pos.str) == true || *pos.str == '.')) {
+                if (*pos.str == '.') {
                     if (isdot) {
                         return 0;
                     }
@@ -242,158 +257,170 @@ double chop_num(char **buffer)
                     }
                 } 
                 count++;
-                pos++;
+                chop_char_trim(&pos);
             }
             char temp[count + 1];
-            memcpy(temp, start, count * sizeof(char));
+            memcpy(temp, buffer->str, count);
             temp[count] = '\0';
             char *end;
             double result = strtod(temp, &end);
-            *buffer = pos;
+            buffer->str = pos.str;
+            buffer->len = pos.len;
+
             return result;
         }
-
-        pos++;
+        chop_char_trim(&pos);
     }
 
     return 0;
 }
 
-bool chop_word(char **buffer, char* word, size_t word_size)
+bool chop_word(String *buffer, char* word, size_t word_size)
 {
-    if (**buffer != *word) {
-        return false;
-    }
-
-    char *pos = *buffer;
     size_t i = 0;
+    String pos = *buffer;
 
-    while (*pos != '\0' && i < word_size) {
-        if (*pos != *word) {
+    trim_left(&pos);
+    while (pos.len > 0 && i < word_size) {
+        if (*pos.str != *word) {
             return false;
         }
 
-        pos++;
         word++;
         i++;
+        chop_char_trim(&pos);
     }
 
     if (i != word_size) {
         return false;
     }
 
-    *buffer = pos;
+    buffer->str = pos.str;
+    buffer->len = pos.len;
 
     return true;
 }
 
-char* chop_paren(char **buffer, char *endPtr)
+String chop_paren(String *buffer)
 {
-    if (**buffer != '(') {
-        return NULL;
+    if (buffer->str[0] != '(') {
+        return (String) {0};
     }
 
-    char *start = *buffer + 1;
-    char *pos = start;
-    char *location = start;
     bool ended = false;
-    size_t countered = 0;
+    int64_t countered = 0;
+    String pos = *buffer;
+    chop_char_trim(&pos);
+    char *start = pos.str;
+    char *location = pos.str;
 
-    while (pos < endPtr && *pos != 0) {
-        if (*pos == ')') {
-            ended = true;
-            location = pos;
+    while (pos.len > 0) {
+        if (*pos.str == ')') {
+            location = pos.str;
+            chop_char_trim(&pos);
             if (countered == 0) {
+                ended = true;
                 break;
             }
             else {
                 countered--;
             }
         }
-        else if (*pos == '(') {
+        else if (*pos.str == '(') {
+            ended = false;
             countered++;
+            chop_char_trim(&pos);
         }
-
-        pos++;
+        else {
+            chop_char_trim(&pos);
+        }
     }
 
     if (! ended) {
-        return NULL;
+        return (String) {0};
     }
 
-    size_t size = location - start;
-    char *new_expr = (char*)malloc((size + 1) * sizeof(char));
-    memcpy(new_expr, start, size);
-    new_expr[size] = '\0';
-    *buffer = location + 1;
+    String new_expr = {
+        .str = start,
+        .len = location - start,
+    };
+
+    buffer->str = pos.str;
+    buffer->len = pos.len;
 
     return new_expr;
 }
 
 #define ESC_CHAR '\\'
 
-MathFunc chop_func(char **buffer)
+MathFunc chop_func(String *buffer)
 {
-    if (**buffer != ESC_CHAR) {
+    if (buffer->str[0] != ESC_CHAR || buffer->len == 0) {
         return NOPE;
     }
 
-    char *pos = (*buffer) + 1;
+    String new_buff = {
+        .str = &buffer->str[1],
+        .len = buffer->len - 1,
+    };
+
     MathFunc func = NOPE;
 
-    if (*pos == '\0') {
+    if (new_buff.len == 0) {
         return NOPE;
     }
 
-    switch (*pos) {
+    switch (new_buff.str[0]) {
         case 's': 
-            if (chop_word(&pos, "sqrt", 4)) {
+            if (chop_word(&new_buff, "sqrt", 4)) {
                 func = SQRT;
             }
-            else if (chop_word(&pos, "sin", 3)) {
+            else if (chop_word(&new_buff, "sin", 3)) {
                 func = SIN;
             }
             break;
         case 'c': 
-            if (chop_word(&pos, "cos", 3)) {
+            if (chop_word(&new_buff, "cos", 3)) {
                 func = COS;
             }
             break;
         case 't': 
-            if (chop_word(&pos, "tan", 3)) {
+            if (chop_word(&new_buff, "tan", 3)) {
                 func = TAN;
             }
             break;
         case 'm':
-            if (chop_word(&pos, "min", 3)) {
+            if (chop_word(&new_buff, "min", 3)) {
                 func = MIN;
             }
-            else if (chop_word(&pos, "max", 3)) {
+            else if (chop_word(&new_buff, "max", 3)) {
                 func = MAX;
             }
             break;
     }
 
     if (func != NOPE) {
-        *buffer = pos;
+        buffer->str = new_buff.str;
+        buffer->len = new_buff.len;
     }
 
     return func;
 }
 
-char* chop_expr(char **buffer, size_t buffer_count)
+String chop_expr(String *buffer)
 {
     int64_t countered = 0;
     bool stop = true;
-    char *pos = *buffer;
-    char *expr = NULL;
-    for (size_t i = 0; *pos != '\0' && i < buffer_count; i++) {
-        if (*pos == '(') {
+    size_t i;
+    String expr = {0};
+
+    for (i = 0; i < buffer->len; i++) {
+        char c = buffer->str[i];
+        if (c == '(') {
             countered++;
             stop = false;
-            pos++;
         }
-        else if (*pos == ')') {
+        else if (c == ')') {
             countered--;
             if (countered == 0) {
                 stop = true;
@@ -401,38 +428,32 @@ char* chop_expr(char **buffer, size_t buffer_count)
             else if (countered < 0) {
                 return expr;
             }
-            pos++;
         }
-        else if (stop == true && *pos == ',') {
+        else if (stop == true && c == ',') {
             break;
-        }
-        else {
-            pos++;
         }
     }
 
     if (stop) {
-        size_t size = pos - (*buffer);
-        expr = (char*)malloc((size + 1) * sizeof(char));
-        memcpy(expr, *buffer, size);
-        expr[size] = '\0';
-        *buffer = pos;
+        expr.str = buffer->str;
+        expr.len = i;
+        buffer->str = &buffer->str[i];
+        buffer->len = buffer->len - i;
     }
 
     return expr;
 }
 
-bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd *output)
+bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
 {
-    if (**buffer != '(') {
+    if (buffer->str[0] != '(') {
         return false;
     }
 
-    char *arguments = chop_paren(buffer, (*buffer) + buffer_count);
-    if (arguments == NULL) {
+    String args = chop_paren(buffer);
+    if (args.str == NULL) {
         return false;
     }
-    char *args = arguments;
     Parser parser;
     parser.expr = args;
     list_alloc(parser.math.num_list);
@@ -447,7 +468,7 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
         case COS:
             // fall through
         case TAN:
-            success = parse_input(args, strlen(args), &parser.math);
+            success = parse_input(args, &parser.math);
             if (! success) {
                 break;
             } 
@@ -462,30 +483,30 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
         case MIN:
             // fall through
         case MAX:
-                char *arg1;
-                char *arg2;
-                arg1 = chop_expr(&args, strlen(args));
-                if (arg1 == NULL || *args != ',') {
+                String arg1;
+                String arg2;
+                arg1 = chop_expr(&args);
+                if (arg1.str == NULL || *args.str != ',') {
                     success = false;
-                    goto MaxDefer;
+                    break;
                 }
-                size_t remaining = &args[strlen(args) - 1] - args;
-                args += 1;
-                arg2 = chop_expr(&args, remaining);
-                if (arg2 == NULL) {
+                args.str += 1;
+                args.len -= 1;
+                arg2 = chop_expr(&args);
+                if (arg2.str == NULL) {
                     success = false;
-                    goto MaxDefer;
+                    break;
                 }
 
-                if (! parse_input(arg1, strlen(arg1), &parser.math)) {
+                if (! parse_input(arg1, &parser.math)) {
                     success = false;
-                    goto MaxDefer;
+                    break;
                 }
 
                 parse_expression(&parser);
                 if (parser.math.num_list.count <= 0) {
                     success = false;
-                    goto MaxDefer;
+                    break;
                 }
 
                 list_push(*output, do_the_math(parser.math));
@@ -493,24 +514,20 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
                 list_clear(parser.math.num_list);
                 list_clear(parser.math.oper_list);
 
-                if (! parse_input(arg2, strlen(arg2), &parser.math)) {
+                if (! parse_input(arg2, &parser.math)) {
                     success = false;
-                    goto MaxDefer;
+                    break;
                 }
 
                 parse_expression(&parser);
                 if (parser.math.num_list.count <= 0) {
                     success = false;
-                    goto MaxDefer;
+                    break;
                 }
 
                 list_push(*output, do_the_math(parser.math));
 
                 success = true;
-
-            MaxDefer:
-                free(arg1);
-                free(arg2);
             break;
         default:
             success = false; 
@@ -519,26 +536,25 @@ bool chop_func_params(char **buffer, size_t buffer_count, MathFunc func, Stackd 
 
     list_free(parser.math.num_list);
     list_free(parser.math.oper_list);
-    free(arguments);
 
     return success;
 }
 
-bool parse_input(char *buffer, size_t buffer_count, Math *output)
-{
-    remove_white_spaces(buffer, buffer_count);
-    strlwr(buffer);
 
-    char *pos = buffer;
-    size_t i = 0;
+bool parse_input(String buffer, Math *output)
+{
+    trim_left(&buffer);
+    strlwr(buffer.str);
+
     bool isnum = false;
     bool negate = false;
-    if (*pos == '-') {
+    if (buffer.str[0] == '-') {
         negate = true;
+        chop_char_trim(&buffer);
     }
 
-    if (*pos == 'e') {
-        bool _exit = chop_word(&pos, "exit", 4);
+    if (buffer.str[0] == 'e') {
+        bool _exit = chop_word(&buffer, "exit", 4);
         if (! _exit) {
             fprintf(stderr, "Error: Invalid input.\n");
             return false;
@@ -546,10 +562,10 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
         exit(0);
     }
 
-    while (i < buffer_count && *pos != 0) {
-        if (isdigit(*pos)) {
-            double num = chop_num(&pos);
-            i = pos - buffer;
+    while (buffer.len > 0) {
+        char c = *buffer.str;
+        if (isdigit(c)) {
+            double num = chop_num(&buffer);
             isnum = true;
             if (negate) {
                 num *= -1;
@@ -557,35 +573,32 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             }
             list_push(output->num_list, num);
         }
-        else if (str_contains(operators, operator_count, *pos)) {
+        else if (str_contains(operators, operator_count, c)) {
             if (! isnum) {
                 fprintf(stderr, "Error: Operator wasn't preceeded by a number\n");
                 return false;
             }
 
-            list_push(output->oper_list, *pos);
+            list_push(output->oper_list, c);
             isnum = false;
-            i++;
-            pos++;
+            chop_char_trim(&buffer);
 
-            if (i < buffer_count && *pos == '-') {
+            if (buffer.len > 0 && *buffer.str == '-') {
                 negate = true;
-                pos++;
-                i++;
+                chop_char_trim(&buffer);
             }
         }
-        else if (*pos == '(') {
-            char *current = pos;
+        else if (c == '(') {
             Parser parser;
-            parser.expr = chop_paren(&pos, buffer + buffer_count);
-            if (parser.expr == NULL) {
+            parser.expr = chop_paren(&buffer);
+            // printf("paren: %*.*s\n", (int)parser.expr.len, (int)parser.expr.len, parser.expr.str);
+            if (parser.expr.str == NULL) {
                 fprintf(stderr, "Error: Invalid parenthesis.\n");
                 return false;
             }
-            i = pos - current;
             list_alloc(parser.math.num_list);
             list_alloc(parser.math.oper_list);
-            parse_input(parser.expr, strlen(parser.expr), &parser.math);
+            parse_input(parser.expr, &parser.math);
             parse_expression(&parser);
             double result = do_the_math(parser.math);
             if (negate) {
@@ -593,33 +606,28 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
                 negate = false;
             }
             list_push(output->num_list, result);
-            free(parser.expr);
             list_free(parser.math.num_list);
             list_free(parser.math.oper_list);
             isnum = true;
         }
-        else if (*pos == 'a') {
-            char *current = pos;
-            bool success = chop_word(&pos, "ans", 3);
+        else if (c == 'a') {
+            bool success = chop_word(&buffer, "ans", 3);
             if (! success) {
                 fprintf(stderr, "Error: Invalid input.\n");
                 return false;
             }
             isnum = true;
-            i = pos - current;
             list_push(output->num_list, ANS);
         }
-        else if (*pos == ESC_CHAR) {
-            char *current = pos;
-            MathFunc func = chop_func(&pos);
+        else if (c == ESC_CHAR) {
+            MathFunc func = chop_func(&buffer);
             if (func == NOPE) {
                 fprintf(stderr, "Invalid function.\n");
                 return false;
             }
-            i = pos - current;
             Stackd arg_list;
             list_alloc(arg_list);
-            if (! chop_func_params(&pos, buffer_count - i, func, &arg_list)) {
+            if (! chop_func_params(&buffer, func, &arg_list)) {
                 fprintf(stderr, "Invalid function parameters.\n");
                 list_free(arg_list);
                 return false;
@@ -628,8 +636,11 @@ bool parse_input(char *buffer, size_t buffer_count, Math *output)
             list_free(arg_list);
             isnum = true;
         }
+        else if (buffer.len == 0){ 
+            return true;
+        }
         else {
-            fprintf(stderr, "Error: Invalid input.\n");
+            fprintf(stderr, "Error: Invalid input.\nBuffer: %s\nLen: %zu\n", buffer.str, buffer.len);
             return false;
         }
     }  
@@ -721,8 +732,6 @@ double parse_math_func(MathFunc func, Stackd *args)
 
 void parse_expression(Parser *parser)
 {
-    remove_white_spaces(parser->expr, strlen(parser->expr));
-
     parse_operations(parser, "^", 1);
     parse_operations(parser, "*/%", 3);
 }
@@ -742,11 +751,18 @@ double do_the_math(const Math math)
 bool expected(char* input, double expected_output)
 {
     Parser parser;
-    parser.expr = input;
+    parser.expr = (String) {
+        .str = input,
+        .len = strlen(input),
+    };
     parser.ans = 0;
     list_alloc(parser.math.num_list);
     list_alloc(parser.math.oper_list);
-    parse_input(input, strlen(input) + 1, &parser.math);
+    String str = {
+        .str = input,
+        .len = strlen(input),
+    };
+    parse_input(str, &parser.math);
 
 #if 0
     for (size_t i = 0; i < parser.math.num_list.count; i++) {
@@ -786,7 +802,7 @@ bool expected(char* input, double expected_output)
   do {                                                                         \
     char EXPR[] = expr;                                                        \
     if (! expected(EXPR, EXPECTED_OUTPUT)) {                                   \
-      success = false;                                                          \
+      success = false;                                                         \
     }                                                                          \
   } while (0)
 
@@ -1019,6 +1035,20 @@ char* chop_arg(int *argc, char *(**argv))
     return arg;
 }
 
+int main2(void)
+{
+    char str[] = "Hello world";
+    size_t len = strlen(str);
+    String buffer = {.str = str, .len = len};
+
+    while (buffer.len > 0) {
+        printf("%c\n", *buffer.str);
+        chop_char(&buffer);
+    }    
+
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     char *program = chop_arg(&argc, &argv);
@@ -1052,9 +1082,15 @@ int main(int argc, char* argv[])
     {
         memset(buffer, 0, buffer_count * sizeof(char));
         fgets(buffer, buffer_count, stdin);
-        parser.expr = buffer;
 
-        bool parsed = parse_input(buffer, buffer_count, &parser.math); 
+        String str = {
+            .str = buffer,
+            .len = strlen(buffer),  
+        };
+
+        parser.expr = str;
+
+        bool parsed = parse_input(str, &parser.math); 
 
         if (parsed) {
             parse_expression(&parser);

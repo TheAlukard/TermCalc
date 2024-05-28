@@ -782,14 +782,19 @@ bool expected(char* input, double expected_output)
     printf("{\n");
     printf("    Input   : %s\n", input);
     if (((int64_t)output ^ (int64_t)expected_output) != 0) {
-        printf("    \033[31mOutput  : %lf\n", output);
         success= false;
     }
     else {
-        printf("    Output  : %lf\n", output);
         success = true;
     }
-    printf("    \033[0mExpected: %lf\n", expected_output);
+    printf("    Output  : %lf\n", output);
+    printf("    Expected: %lf\n", expected_output);
+    if (success) {
+        printf("    PASSED!\n");
+    }
+    else {
+        printf("    FAILED!\n");
+    }
     printf("}\n");
 
     return success; 
@@ -1014,10 +1019,10 @@ void test()
         success);
 
     if (success) {
-        printf("\033[32mALL TESTS WERE SUCCESSFUL!\n");
+        printf("ALL TESTS WERE SUCCESSFUL!\n");
     }
     else {
-        printf("\033[31mNOT ALL TESTS WERE SUCCESSFUL!\n");
+        printf("NOT ALL TESTS WERE SUCCESSFUL!\n");
     }
 }
 

@@ -350,6 +350,19 @@ String chop_paren(String *buffer)
 
 #define ESC_CHAR '\\'
 
+int get_func_param_count(MathFunc func)
+{
+    switch (func) {
+        case SQRT: // fall through
+        case SIN : // fall through
+        case COS : // fall through
+        case TAN : return 1;
+        case MIN : // fall through
+        case MAX : return 2;
+        default  : return -1;
+    }
+}
+
 MathFunc chop_func(String *buffer)
 {
     if (buffer->str[0] != ESC_CHAR || buffer->len == 0) {
@@ -455,80 +468,35 @@ bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
     parser.expr = args;
     list_alloc(parser.math.num_list);
     list_alloc(parser.math.oper_list);
-    bool success;
+    bool success = true;
+    int arg_count = get_func_param_count(func);
 
-    switch (func) {
-        case SQRT:
-            // fall through
-        case SIN:
-            // fall through
-        case COS:
-            // fall through
-        case TAN:
-            success = parse_input(args, &parser.math);
-            if (! success) {
-                break;
-            } 
-            parse_expression(&parser);
-            if (parser.math.num_list.count <= 0) {
-                success = false;
-                break;
-            }
-            list_push(*output, do_the_math(parser.math));
-            success = true;
+    for (int i = 0; i < arg_count; i++) {
+        String arg;
+        arg = chop_expr(&args);
+        if (arg.str == NULL) {
+            success = false;
             break;
-        case MIN:
-            // fall through
-        case MAX:
-                String arg1;
-                String arg2;
-                arg1 = chop_expr(&args);
-                if (arg1.str == NULL || *args.str != ',') {
-                    success = false;
-                    break;
-                }
-                args.str += 1;
-                args.len -= 1;
-                arg2 = chop_expr(&args);
-                if (arg2.str == NULL) {
-                    success = false;
-                    break;
-                }
-
-                if (! parse_input(arg1, &parser.math)) {
-                    success = false;
-                    break;
-                }
-
-                parse_expression(&parser);
-                if (parser.math.num_list.count <= 0) {
-                    success = false;
-                    break;
-                }
-
-                list_push(*output, do_the_math(parser.math));
-
-                list_clear(parser.math.num_list);
-                list_clear(parser.math.oper_list);
-
-                if (! parse_input(arg2, &parser.math)) {
-                    success = false;
-                    break;
-                }
-
-                parse_expression(&parser);
-                if (parser.math.num_list.count <= 0) {
-                    success = false;
-                    break;
-                }
-
-                list_push(*output, do_the_math(parser.math));
-
-                success = true;
+        }
+        else if (i < arg_count - 1 && *args.str != ',') {
+            success = false;
             break;
-        default:
-            success = false; 
+        }
+        chop_char_trim(&args);
+        list_clear(parser.math.num_list);
+        list_clear(parser.math.oper_list);
+        if (! parse_input(arg, &parser.math)) {
+            success = false;
             break;
+        }
+
+        parse_expression(&parser);
+        if (parser.math.num_list.count <= 0) {
+            success = false;
+            break;
+        }
+
+        list_push(*output, do_the_math(parser.math));
     }
 
     list_free(parser.math.num_list);

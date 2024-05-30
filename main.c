@@ -652,44 +652,26 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
 
 double parse_math_func(MathFunc func, Stackd *args)
 {
-    double result = 0;
+    if (args->count == 0) {
+        return 0;
+    }
 
     switch (func) {
         case SQRT:
-            if (args->count > 0) {
-                result =  sqrt(args->items[0]);
-            }
-            break;
+            return sqrt(args->items[0]);
         case SIN:
-            if (args->count > 0) {
-                result =  sin(args->items[0]);
-            }
-            break;
+            return sin(args->items[0]);
         case COS:
-            if (args->count > 0) {
-                result =  cos(args->items[0]);
-            }
-            break;
+            return cos(args->items[0]);
         case TAN:
-            if (args->count > 0) {
-                result =  tan(args->items[0]);
-            }
-            break;
+            return tan(args->items[0]);
         case MIN:
-            if (args->count > 0) {
-                result = Min(args->items[0], args->items[1]);
-            }
-            break;
+            return Min(args->items[0], args->items[1]);
         case MAX:
-            if (args->count > 0) {
-                result = Max(args->items[0], args->items[1]);
-            }
-            break;
-        default:
-            break;
+            return Max(args->items[0], args->items[1]);
+        default: 
+            return 0;
     }
-
-    return result;
 }
 
 void parse_expression(Parser *parser)

@@ -601,9 +601,6 @@ bool parse_input(String buffer, Math *output)
             list_free(arg_list);
             isnum = true;
         }
-        else if (buffer.len == 0){ 
-            return true;
-        }
         else {
             fprintf(stderr, "Error: Invalid input.\nBuffer: %s\nLen: %zu\n", buffer.str, buffer.len);
             return false;

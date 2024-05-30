@@ -728,11 +728,12 @@ bool expected(char* input, double expected_output)
 
     printf("{\n");
     printf("    Input   : %s\n", input);
-    if (((int64_t)output ^ (int64_t)expected_output) != 0) {
-        success= false;
+    double eps = 1e-5;
+    if (expected_output - output <= eps) {
+        success = true;
     }
     else {
-        success = true;
+        success = false;
     }
     printf("    Output  : %lf\n", output);
     printf("    Expected: %lf\n", expected_output);

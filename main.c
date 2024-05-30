@@ -99,14 +99,14 @@ double ANS = 0;
 
 typedef struct {
     double *items;
-    size_t count;
     size_t capacity;
+    size_t count;
 } NumList;
 
 typedef struct {
     char *items;
-    size_t count;
     size_t capacity;
+    size_t count;
 } OperList; 
 
 typedef struct {

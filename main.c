@@ -1,13 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "utils.h"
 #include <ctype.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "utils.h"
+#include <time.h>
 
-const char operators[] = "+-/*%^"; 
+const char operators[] = "+-/*%^";
 #define operator_count ((sizeof(operators) / sizeof(operators[0])) - 1)
 
 double ANS = 0;
@@ -22,7 +23,7 @@ typedef struct {
     char *items;
     size_t capacity;
     size_t count;
-} OperList; 
+} OperList;
 
 typedef struct {
     NumList num_list;
@@ -77,21 +78,21 @@ static inline void trim_left(String *str);
 
 #define INLINE __attribute__((always_inline)) static inline
 
-void print_math(const Math math)
+void print_math(const Math math) 
 {
     printf("Math:\n");
 
     for (size_t i = 0; i < math.num_list.count; i++) {
-        printf("    %lf \n",math.num_list.items[i]);
+        printf("    %lf \n", math.num_list.items[i]);
         if (i < math.oper_list.count) {
-            printf("    %c \n", math.oper_list.items[i]);
+        printf("    %c \n", math.oper_list.items[i]);
         }
     }
-    
+
     printf("\n");
 }
 
-INLINE void string_lower(String *string)
+INLINE void string_lower(String *string) 
 {
     for (size_t i = 0; i < string->len; i++) {
         if (string->str[i] >= 65 && string->str[i] <= 90) {
@@ -100,58 +101,61 @@ INLINE void string_lower(String *string)
     }
 }
 
-INLINE bool str_contains(const char* str, size_t count, char item)
+INLINE bool str_contains(const char *str, size_t count, char item) 
 {
     for (size_t i = 0; i < count; i++) {
-        if (str[i] == item) return true;
+        if (str[i] == item)
+        return true;
     }
 
     return false;
 }
 
-INLINE double perform_operation(double num1, double num2, char operation)
+INLINE double perform_operation(double num1, double num2, char operation) 
 {
-    switch(operation) {
-        case '+': 
+    switch (operation) {
+        case '+':
             return num1 + num2;
-        case '-': 
+        case '-':
             return num1 - num2;
-        case '*': 
+        case '*':
             return num1 * num2;
-        case '/': 
+        case '/':
             return num1 / num2;
-        case '%': 
+        case '%':
             return (int64_t)(num1) % (int64_t)(num2);
-        case '^': 
+        case '^':
             return pow(num1, num2);
         default:
-            fprintf(stderr, "%s:%d:1 Invalid operation: '%c'\n", __FILE__, __LINE__, operation);
+            fprintf(stderr, "%s:%d:1 Invalid operation: '%c'\n", __FILE__, __LINE__,
+                    operation);
             exit(1);
     }
 }
 
-INLINE void chop_char(String *buffer)
+INLINE void chop_char(String *buffer) 
 {
-    if (buffer->len == 0) return;
+    if (buffer->len == 0)
+        return;
 
     buffer->str += 1;
     buffer->len -= 1;
 }
 
-INLINE void trim_left(String *str)
+INLINE void trim_left(String *str) 
 {
     while (str->len > 0 && isspace(*str->str)) {
         chop_char(str);
     }
 }
 
-INLINE void chop_char_trim(String *buffer)
+INLINE void chop_char_trim(String *buffer) 
 {
     chop_char(buffer);
     trim_left(buffer);
 }
 
-double chop_num(String *buffer)
+double chop_num(String *buffer) 
 {
     size_t count = 0;
     bool isdot = false;
@@ -163,11 +167,11 @@ double chop_num(String *buffer)
                 if (*pos.str == '.') {
                     if (isdot) {
                         return 0;
-                    }
+                    } 
                     else {
                         isdot = true;
                     }
-                } 
+                }
                 count++;
                 chop_char_trim(&pos);
             }
@@ -187,7 +191,7 @@ double chop_num(String *buffer)
     return 0;
 }
 
-bool chop_word(String *buffer, char* word, size_t word_size)
+bool chop_word(String *buffer, char *word, size_t word_size) 
 {
     size_t i = 0;
     String pos = *buffer;
@@ -213,10 +217,10 @@ bool chop_word(String *buffer, char* word, size_t word_size)
     return true;
 }
 
-String chop_paren(String *buffer)
+String chop_paren(String *buffer) 
 {
     if (buffer->str[0] != '(') {
-        return (String) {0};
+        return (String){0};
     }
 
     bool ended = false;
@@ -233,23 +237,23 @@ String chop_paren(String *buffer)
             if (countered == 0) {
                 ended = true;
                 break;
-            }
+            } 
             else {
                 countered--;
             }
-        }
+        } 
         else if (*pos.str == '(') {
             ended = false;
             countered++;
             chop_char_trim(&pos);
-        }
+        } 
         else {
             chop_char_trim(&pos);
         }
     }
 
-    if (! ended) {
-        return (String) {0};
+    if (!ended) {
+        return (String){0};
     }
 
     String new_expr = {
@@ -265,7 +269,7 @@ String chop_paren(String *buffer)
 
 #define ESC_CHAR '\\'
 
-int get_func_param_count(MathFunc func)
+int get_func_param_count(MathFunc func) 
 {
     switch (func) {
         case SQRT: // fall through
@@ -278,7 +282,7 @@ int get_func_param_count(MathFunc func)
     }
 }
 
-MathFunc chop_func(String *buffer)
+MathFunc chop_func(String *buffer) 
 {
     if (buffer->str[0] != ESC_CHAR || buffer->len == 0) {
         return NOPE;
@@ -296,20 +300,20 @@ MathFunc chop_func(String *buffer)
     }
 
     switch (new_buff.str[0]) {
-        case 's': 
+        case 's':
             if (chop_word(&new_buff, "sqrt", 4)) {
                 func = SQRT;
-            }
+            } 
             else if (chop_word(&new_buff, "sin", 3)) {
                 func = SIN;
             }
             break;
-        case 'c': 
+        case 'c':
             if (chop_word(&new_buff, "cos", 3)) {
                 func = COS;
             }
             break;
-        case 't': 
+        case 't':
             if (chop_word(&new_buff, "tan", 3)) {
                 func = TAN;
             }
@@ -317,7 +321,7 @@ MathFunc chop_func(String *buffer)
         case 'm':
             if (chop_word(&new_buff, "min", 3)) {
                 func = MIN;
-            }
+            } 
             else if (chop_word(&new_buff, "max", 3)) {
                 func = MAX;
             }
@@ -332,7 +336,7 @@ MathFunc chop_func(String *buffer)
     return func;
 }
 
-String chop_expr(String *buffer)
+String chop_expr(String *buffer) 
 {
     int64_t countered = 0;
     bool stop = true;
@@ -344,16 +348,16 @@ String chop_expr(String *buffer)
         if (c == '(') {
             countered++;
             stop = false;
-        }
+        } 
         else if (c == ')') {
             countered--;
             if (countered == 0) {
                 stop = true;
-            }
+            } 
             else if (countered < 0) {
                 return expr;
             }
-        }
+        } 
         else if (stop == true && c == ',') {
             break;
         }
@@ -369,7 +373,7 @@ String chop_expr(String *buffer)
     return expr;
 }
 
-bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
+bool chop_func_params(String *buffer, MathFunc func, Stackd *output) 
 {
     if (buffer->str[0] != '(') {
         return false;
@@ -392,7 +396,7 @@ bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
         if (arg.str == NULL) {
             success = false;
             break;
-        }
+        } 
         else if (i < arg_count - 1 && *args.str != ',') {
             success = false;
             break;
@@ -400,7 +404,7 @@ bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
         chop_char_trim(&args);
         list_clear(parser.math.num_list);
         list_clear(parser.math.oper_list);
-        if (! parse_input(arg, &parser.math)) {
+        if (!parse_input(arg, &parser.math)) {
             success = false;
             break;
         }
@@ -420,8 +424,7 @@ bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
     return success;
 }
 
-
-bool parse_input(String buffer, Math *output)
+bool parse_input(String buffer, Math *output) 
 {
     trim_left(&buffer);
     string_lower(&buffer);
@@ -435,7 +438,7 @@ bool parse_input(String buffer, Math *output)
 
     if (buffer.str[0] == 'e') {
         bool _exit = chop_word(&buffer, "exit", 4);
-        if (! _exit) {
+        if (!_exit) {
             fprintf(stderr, "Error: Invalid input.\n");
             return false;
         }
@@ -452,9 +455,9 @@ bool parse_input(String buffer, Math *output)
                 negate = false;
             }
             list_push(output->num_list, num);
-        }
+        } 
         else if (str_contains(operators, operator_count, c)) {
-            if (! isnum) {
+            if (!isnum) {
                 fprintf(stderr, "Error: Operator wasn't preceeded by a number\n");
                 return false;
             }
@@ -467,11 +470,12 @@ bool parse_input(String buffer, Math *output)
                 negate = true;
                 chop_char_trim(&buffer);
             }
-        }
+        } 
         else if (c == '(') {
             Parser parser;
             parser.expr = chop_paren(&buffer);
-            // printf("paren: %*.*s\n", (int)parser.expr.len, (int)parser.expr.len, parser.expr.str);
+            // printf("paren: %*.*s\n", (int)parser.expr.len, (int)parser.expr.len,
+            // parser.expr.str);
             if (parser.expr.str == NULL) {
                 fprintf(stderr, "Error: Invalid parenthesis.\n");
                 return false;
@@ -489,16 +493,16 @@ bool parse_input(String buffer, Math *output)
             list_free(parser.math.num_list);
             list_free(parser.math.oper_list);
             isnum = true;
-        }
+        } 
         else if (c == 'a') {
             bool success = chop_word(&buffer, "ans", 3);
-            if (! success) {
+            if (!success) {
                 fprintf(stderr, "Error: Invalid input.\n");
                 return false;
             }
             isnum = true;
             list_push(output->num_list, ANS);
-        }
+        } 
         else if (c == ESC_CHAR) {
             MathFunc func = chop_func(&buffer);
             if (func == NOPE) {
@@ -507,7 +511,7 @@ bool parse_input(String buffer, Math *output)
             }
             Stackd arg_list;
             list_alloc(arg_list);
-            if (! chop_func_params(&buffer, func, &arg_list)) {
+            if (!chop_func_params(&buffer, func, &arg_list)) {
                 fprintf(stderr, "Invalid function parameters.\n");
                 list_free(arg_list);
                 return false;
@@ -515,18 +519,18 @@ bool parse_input(String buffer, Math *output)
             list_push(output->num_list, parse_math_func(func, &arg_list));
             list_free(arg_list);
             isnum = true;
-        }
+        } 
         else {
-            fprintf(stderr, "Error: Invalid input.\nBuffer: %s\nLen: %zu\n", buffer.str, buffer.len);
+            fprintf(stderr, "Error: Invalid input.\nBuffer: %s\nLen: %zu\n",
+                    buffer.str, buffer.len);
             return false;
         }
-    }  
+    }
 
     return true;
 }
 
-
-void parse_operations(Parser *parser, char *ops, size_t ops_count)
+void parse_operations(Parser *parser, char *ops, size_t ops_count) 
 {
     if (parser->math.oper_list.count != parser->math.num_list.count - 1) {
         fprintf(stderr, "%s:%d:1 Invalid input:\n", __FILE__, __LINE__);
@@ -541,13 +545,14 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
 
     size_t j = 1;
     for (size_t i = 0; i < parser->math.oper_list.count; i++) {
-        char operator = parser->math.oper_list.items[i];
+        char operator= parser->math.oper_list.items[i];
         if (str_contains(ops, ops_count, operator)) {
             double num = list_pop(num_stack, double);
-            double result = perform_operation(num, parser->math.num_list.items[i + 1], operator);
+            double result =
+                perform_operation(num, parser->math.num_list.items[i + 1], operator);
             list_push(num_stack, result);
             j = i + 2;
-        }
+        } 
         else {
             list_push(oper_stack, operator);
             list_push(num_stack, parser->math.num_list.items[j]);
@@ -565,7 +570,7 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
     list_transfer(parser->math.oper_list, oper_stack);
 }
 
-double parse_math_func(MathFunc func, Stackd *args)
+double parse_math_func(MathFunc func, Stackd *args) 
 {
     if (args->count == 0) {
         return 0;
@@ -584,33 +589,33 @@ double parse_math_func(MathFunc func, Stackd *args)
             return Min(args->items[0], args->items[1]);
         case MAX:
             return Max(args->items[0], args->items[1]);
-        default: 
+        default:
             return 0;
     }
 }
 
-void parse_expression(Parser *parser)
+void parse_expression(Parser *parser) 
 {
     parse_operations(parser, "^", 1);
     parse_operations(parser, "*/%", 3);
 }
 
-
-INLINE double do_the_math(const Math math)
+INLINE double do_the_math(const Math math) 
 {
     double result = math.num_list.items[0];
 
     for (size_t i = 1; i < math.num_list.count; i++) {
-        result = perform_operation(result, math.num_list.items[i], math.oper_list.items[i - 1]);
+        result = perform_operation(result, math.num_list.items[i],
+                                   math.oper_list.items[i - 1]);
     }
 
     return result;
 }
 
-bool expected(char* input, double expected_output)
+bool expected(char *input, double expected_output) 
 {
     Parser parser;
-    parser.expr = (String) {
+    parser.expr = (String){
         .str = input,
         .len = strlen(input),
     };
@@ -646,7 +651,7 @@ bool expected(char* input, double expected_output)
     double eps = 1e-5;
     if (expected_output - output <= eps) {
         success = true;
-    }
+    } 
     else {
         success = false;
     }
@@ -654,253 +659,111 @@ bool expected(char* input, double expected_output)
     printf("    Expected: %lf\n", expected_output);
     if (success) {
         printf("    PASSED!\n");
-    }
+    } 
     else {
         printf("    FAILED!\n");
     }
     printf("}\n");
 
-    return success; 
+    return success;
 }
 
 #define EXPECTED(expr, EXPECTED_OUTPUT, success)                               \
   do {                                                                         \
     char EXPR[] = expr;                                                        \
-    if (! expected(EXPR, EXPECTED_OUTPUT)) {                                   \
+    if (!expected(EXPR, EXPECTED_OUTPUT)) {                                    \
       success = false;                                                         \
     }                                                                          \
   } while (0)
 
-void test()
+void test() 
 {
     bool success = true;
-    EXPECTED(
-        "3 + 3",
-        6,
-        success
-    );
-    EXPECTED(
-        "3 - 3",
-        0,
-        success
-    );
-    EXPECTED(
-        "3 * 3",
-        9,
-        success
-    );
-    EXPECTED(
-        "3 / 3",
-        1,
-        success
-    );
-    EXPECTED(
-        "3 ^ 3",
-        27,
-        success
-    );
-    EXPECTED(
-        "5 % 3",
-        2,
-        success
-    );
-    EXPECTED(
-        "5 - -3",
-        8,
-        success
-    );
-    EXPECTED(
-        "5 + -(2 * 3)",
-        -1,
-        success
-    );
-    EXPECTED(
-        "5 * -1",
-        -5,
-        success
-    );
-    EXPECTED(
-        "3 * 7 + 46 % 4",
-        23,
-        success
-    );
-    EXPECTED(
-        "5 * 2 ^ 3 / 4 + 1 * 5",
-        15,
-        success
-    );
-    EXPECTED(
-        "5 * 2 ^ 3 ^ 4 + 1 +  79",
-        20560,
-        success
-    );
-    EXPECTED(
-        "1 + 3 *  9",
-        28,
-        success
-    );
-    EXPECTED(
-        "64 ^ 0 / 2 + 6",
-        6.5f,
-        success
-    );
-    EXPECTED(
-        "4 ^ 2 / 8 + 1",
-        3,
-        success
-    );
-    EXPECTED(
-        "1 / 0.5 + 6",
-        8,
-        success
-    );
-    EXPECTED(
-        "3 + 5 / 3 ^ 4 * 9 - 2 * 1",
-        1.55555555555556,
-        success
-    );
-    EXPECTED(
-        "3 + 3 + 3 + 3 + 3 ^ 0 + 3",
-        16,
-        success
-    );
-    EXPECTED(
-        "1 / 0.3 - 0.1 * 3 ^ 2",
-        2.43333333333333,
-        success
-    );
-    EXPECTED(
-        "0 / 2 * 1",
-        0,
-        success
-    );
-    EXPECTED(
-        "0/1*2",
-        0,
-        success
-    );
-    EXPECTED(
-        "2 ^ 3 + 2",
-        10,
-        success
-    );
-    EXPECTED(
-        "2 ^ (3 + 2)",
-        32,
-        success
-    );
-    EXPECTED(
-        "9 / 3 - 2",
-        1,
-        success
-    );
-    EXPECTED(
-        "9 / (3 - 2)",
-        9,
-        success
-    );
-    EXPECTED(
-        "9 + 2 ^ 2 + 9 * 3 - 1 - 1",
-        9 + pow(2, 2) + 9 * 3 -1 -1, 
-        success
-    );
-    EXPECTED(
-        "9 + 2 ^ (2 + 9 * 3 - 1 - 1)",
-        9 + pow(2,
-        2 + 9 * 3 - 1 - 1), 
-        success
-    );
-    EXPECTED(
-        "9 + 2 ^ (2 + 9 * (3 - 1) - 1)",
-        9 + pow(2,
-        2 + 9 * (3 - 1) - 1),
-        success
-    );
-    EXPECTED(
-        "0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))", 
-        0.f / (3 - 1) + 9 * (pow(2, 1+1) + 3 * (3 * (1 - 1 + (3.f / 1)))), 
-        success
-    );
-    EXPECTED(
-        "90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 ) ) ) ) )", 
-        90 / (32.32f * pow(32, 3.f / 2.f)) + (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))), 
-        success
-    );
-    EXPECTED(
-        "32 -(8 * -5 / 0.3 * (6 - 7) + -1) / 3.5 - -8",
-        32 -(8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8,
-        success
-    );
-    EXPECTED(
-        "43 * 3",
-        43 * 3,
-        success
-    );
-    EXPECTED(
-        "Ans + 1",
-        (43 * 3) + 1,
-        success
-    );
-    EXPECTED(
-        "3 * ans * (ans ^ -2 + 1.3)",
-        3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), 
-        success
-    );
-    EXPECTED(
-        "\\sqrt(42)",
-        sqrt(42),
-        success
-    );
-    EXPECTED(
-        "\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))",
-        sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))),
-        success
-    );
-    EXPECTED(
-        "\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))", 
-        sqrt(30) / pow(tan(50.3), sin(43) / cos(44)), 
-        success
-    );
+    long time1 = clock();
+    EXPECTED("3 + 3", 6, success);
+    EXPECTED("3 - 3", 0, success);
+    EXPECTED("3 * 3", 9, success);
+    EXPECTED("3 / 3", 1, success);
+    EXPECTED("3 ^ 3", 27, success);
+    EXPECTED("5 % 3", 2, success);
+    EXPECTED("5 - -3", 8, success);
+    EXPECTED("5 + -(2 * 3)", -1, success);
+    EXPECTED("5 * -1", -5, success);
+    EXPECTED("3 * 7 + 46 % 4", 23, success);
+    EXPECTED("5 * 2 ^ 3 / 4 + 1 * 5", 15, success);
+    EXPECTED("5 * 2 ^ 3 ^ 4 + 1 +  79", 20560, success);
+    EXPECTED("1 + 3 *  9", 28, success);
+    EXPECTED("64 ^ 0 / 2 + 6", 6.5f, success);
+    EXPECTED("4 ^ 2 / 8 + 1", 3, success);
+    EXPECTED("1 / 0.5 + 6", 8, success);
+    EXPECTED("3 + 5 / 3 ^ 4 * 9 - 2 * 1", 1.55555555555556, success);
+    EXPECTED("3 + 3 + 3 + 3 + 3 ^ 0 + 3", 16, success);
+    EXPECTED("1 / 0.3 - 0.1 * 3 ^ 2", 2.43333333333333, success);
+    EXPECTED("0 / 2 * 1", 0, success);
+    EXPECTED("0/1*2", 0, success);
+    EXPECTED("2 ^ 3 + 2", 10, success);
+    EXPECTED("2 ^ (3 + 2)", 32, success);
+    EXPECTED("9 / 3 - 2", 1, success);
+    EXPECTED("9 / (3 - 2)", 9, success);
+    EXPECTED("9 + 2 ^ 2 + 9 * 3 - 1 - 1", 9 + pow(2, 2) + 9 * 3 - 1 - 1, success);
+    EXPECTED("9 + 2 ^ (2 + 9 * 3 - 1 - 1)", 9 + pow(2, 2 + 9 * 3 - 1 - 1),
+             success);
+    EXPECTED("9 + 2 ^ (2 + 9 * (3 - 1) - 1)", 9 + pow(2, 2 + 9 * (3 - 1) - 1),
+             success);
+    EXPECTED("0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))",
+             0.f / (3 - 1) + 9 * (pow(2, 1 + 1) + 3 * (3 * (1 - 1 + (3.f / 1)))),
+             success);
+    EXPECTED("90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 "
+             ") ) ) ) )",
+             90 / (32.32f * pow(32, 3.f / 2.f)) +
+             (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))),
+             success);
+    EXPECTED("32 -(8 * -5 / 0.3 * (6 - 7) + -1) / 3.5 - -8",
+             32 - (8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8, success);
+    EXPECTED("43 * 3", 43 * 3, success);
+    EXPECTED("Ans + 1", (43 * 3) + 1, success);
+    EXPECTED("3 * ans * (ans ^ -2 + 1.3)",
+             3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), success);
+    EXPECTED("\\sqrt(42)", sqrt(42), success);
+    EXPECTED("\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))",
+             sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))), success);
+    EXPECTED("\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))",
+             sqrt(30) / pow(tan(50.3), sin(43) / cos(44)), success);
     EXPECTED(
         "\\sqrt(\\sin(30) / 4.6 * (\\tan(30) / 30)) + 20 ^ 2 / 30 * (3 ^ 2 + 2)",
         sqrt(sin(30) / 4.6 * (tan(30) / 30)) + pow(20, 2) / 30 * (pow(3, 2) + 2),
-        success
-    );
-    EXPECTED(
-        "\\max(3, 7)",
-        Max(3, 7),
-        success
-    );
-    EXPECTED(
-        "\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
-        Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123)))),
-        success
-    );
-    EXPECTED(
-        "64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2", 
-        64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2),
         success);
+    EXPECTED("\\max(3, 7)", Max(3, 7), success);
+    EXPECTED("\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
+             Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123)))), success);
+    EXPECTED("64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2",
+             64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2),
+             success);
+    long time2 = clock();
+    double delta = (double)(time2 - time1) / CLOCKS_PER_SEC;
 
     if (success) {
         printf("ALL TESTS WERE SUCCESSFUL!\n");
-    }
+    } 
     else {
         printf("NOT ALL TESTS WERE SUCCESSFUL!\n");
     }
+    printf("Executing all tests took %lf secs\n", delta); 
 }
 
-char* chop_arg(int *argc, char *(**argv))
+char *chop_arg(int *argc, char *(**argv)) 
 {
-    if (*argc <= 0) return NULL;
+    if (*argc <= 0)
+        return NULL;
 
-    char* arg = **argv;
+    char *arg = **argv;
     *argv += 1;
     argc -= 1;
 
     return arg;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[]) 
 {
     char *program = chop_arg(&argc, &argv);
     Unused(program);
@@ -916,7 +779,7 @@ int main(int argc, char* argv[])
     }
 
     if (Test) {
-        test(); 
+        test();
         return 0;
     }
 
@@ -929,19 +792,18 @@ int main(int argc, char* argv[])
     parser.ans = 0;
     double result;
 
-    while (true)
-    {
+    while (true) {
         memset(buffer, 0, buffer_count * sizeof(char));
         fgets(buffer, buffer_count, stdin);
 
         String str = {
             .str = buffer,
-            .len = strlen(buffer),  
+            .len = strlen(buffer),
         };
 
         parser.expr = str;
 
-        bool parsed = parse_input(str, &parser.math); 
+        bool parsed = parse_input(str, &parser.math);
 
         if (parsed) {
             parse_expression(&parser);
@@ -950,7 +812,7 @@ int main(int argc, char* argv[])
             ANS = result;
 
             printf("Result: %lf\n", result);
-        } 
+        }
 
         list_clear(parser.math.num_list);
         list_clear(parser.math.oper_list);

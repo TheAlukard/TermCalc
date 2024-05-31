@@ -85,7 +85,7 @@ void print_math(const Math math)
     for (size_t i = 0; i < math.num_list.count; i++) {
         printf("    %lf \n", math.num_list.items[i]);
         if (i < math.oper_list.count) {
-        printf("    %c \n", math.oper_list.items[i]);
+            printf("    %c \n", math.oper_list.items[i]);
         }
     }
 
@@ -105,7 +105,7 @@ INLINE bool str_contains(const char *str, size_t count, char item)
 {
     for (size_t i = 0; i < count; i++) {
         if (str[i] == item)
-        return true;
+            return true;
     }
 
     return false;
@@ -680,65 +680,212 @@ void test()
 {
     bool success = true;
     long time1 = clock();
-    EXPECTED("3 + 3", 6, success);
-    EXPECTED("3 - 3", 0, success);
-    EXPECTED("3 * 3", 9, success);
-    EXPECTED("3 / 3", 1, success);
-    EXPECTED("3 ^ 3", 27, success);
-    EXPECTED("5 % 3", 2, success);
-    EXPECTED("5 - -3", 8, success);
-    EXPECTED("5 + -(2 * 3)", -1, success);
-    EXPECTED("5 * -1", -5, success);
-    EXPECTED("3 * 7 + 46 % 4", 23, success);
-    EXPECTED("5 * 2 ^ 3 / 4 + 1 * 5", 15, success);
-    EXPECTED("5 * 2 ^ 3 ^ 4 + 1 +  79", 20560, success);
-    EXPECTED("1 + 3 *  9", 28, success);
-    EXPECTED("64 ^ 0 / 2 + 6", 6.5f, success);
-    EXPECTED("4 ^ 2 / 8 + 1", 3, success);
-    EXPECTED("1 / 0.5 + 6", 8, success);
-    EXPECTED("3 + 5 / 3 ^ 4 * 9 - 2 * 1", 1.55555555555556, success);
-    EXPECTED("3 + 3 + 3 + 3 + 3 ^ 0 + 3", 16, success);
-    EXPECTED("1 / 0.3 - 0.1 * 3 ^ 2", 2.43333333333333, success);
-    EXPECTED("0 / 2 * 1", 0, success);
-    EXPECTED("0/1*2", 0, success);
-    EXPECTED("2 ^ 3 + 2", 10, success);
-    EXPECTED("2 ^ (3 + 2)", 32, success);
-    EXPECTED("9 / 3 - 2", 1, success);
-    EXPECTED("9 / (3 - 2)", 9, success);
-    EXPECTED("9 + 2 ^ 2 + 9 * 3 - 1 - 1", 9 + pow(2, 2) + 9 * 3 - 1 - 1, success);
-    EXPECTED("9 + 2 ^ (2 + 9 * 3 - 1 - 1)", 9 + pow(2, 2 + 9 * 3 - 1 - 1),
-             success);
-    EXPECTED("9 + 2 ^ (2 + 9 * (3 - 1) - 1)", 9 + pow(2, 2 + 9 * (3 - 1) - 1),
-             success);
-    EXPECTED("0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))",
-             0.f / (3 - 1) + 9 * (pow(2, 1 + 1) + 3 * (3 * (1 - 1 + (3.f / 1)))),
-             success);
-    EXPECTED("90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 "
-             ") ) ) ) )",
-             90 / (32.32f * pow(32, 3.f / 2.f)) +
-             (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))),
-             success);
-    EXPECTED("32 -(8 * -5 / 0.3 * (6 - 7) + -1) / 3.5 - -8",
-             32 - (8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8, success);
-    EXPECTED("43 * 3", 43 * 3, success);
-    EXPECTED("Ans + 1", (43 * 3) + 1, success);
-    EXPECTED("3 * ans * (ans ^ -2 + 1.3)",
-             3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f), success);
-    EXPECTED("\\sqrt(42)", sqrt(42), success);
-    EXPECTED("\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))",
-             sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))), success);
-    EXPECTED("\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))",
-             sqrt(30) / pow(tan(50.3), sin(43) / cos(44)), success);
+
+    EXPECTED(
+        "3 + 3",
+        6,
+        success
+    );
+    EXPECTED(
+        "3 - 3",
+        0,
+        success
+    );
+    EXPECTED(
+        "3 * 3",
+        9,
+        success
+    );
+    EXPECTED(
+        "3 / 3",
+        1,
+        success
+    );
+    EXPECTED(
+        "3 ^ 3",
+        27,
+        success
+    );
+    EXPECTED(
+        "5 % 3",
+        2,
+        success
+    );
+    EXPECTED(
+        "5 - -3",
+        8,
+        success
+    );
+    EXPECTED(
+        "5 + -(2 * 3)",
+        -1,
+        success
+    );
+    EXPECTED(
+        "5 * -1",
+        -5,
+        success
+    );
+    EXPECTED(
+        "3 * 7 + 46 % 4",
+        23,
+        success
+    );
+    EXPECTED(
+        "5 * 2 ^ 3 / 4 + 1 * 5",
+        15,
+        success
+    );
+    EXPECTED(
+        "5 * 2 ^ 3 ^ 4 + 1 +  79",
+        20560,
+        success
+    );
+    EXPECTED(
+        "1 + 3 *  9",
+        28,
+        success
+    );
+    EXPECTED(
+        "64 ^ 0 / 2 + 6",
+        6.5f,
+        success
+    );
+    EXPECTED(
+        "4 ^ 2 / 8 + 1",
+        3,
+        success
+    );
+    EXPECTED(
+        "1 / 0.5 + 6",
+        8,
+        success
+    );
+    EXPECTED(
+        "3 + 5 / 3 ^ 4 * 9 - 2 * 1",
+        1.55555555555556,
+        success
+    );
+    EXPECTED(
+        "3 + 3 + 3 + 3 + 3 ^ 0 + 3",
+        16,
+        success
+    );
+    EXPECTED(
+        "1 / 0.3 - 0.1 * 3 ^ 2",
+        2.43333333333333,
+        success
+    );
+    EXPECTED(
+        "0 / 2 * 1",
+        0,
+        success
+    );
+    EXPECTED(
+        "0/1*2",
+        0,
+        success
+    );
+    EXPECTED(
+        "2 ^ 3 + 2",
+        10,
+        success
+    );
+    EXPECTED(
+        "2 ^ (3 + 2)",
+        32,
+        success
+    );
+    EXPECTED(
+        "9 / 3 - 2",
+        1,
+        success
+    );
+    EXPECTED(
+        "9 / (3 - 2)",
+        9,
+        success
+    );
+    EXPECTED(
+        "9 + 2 ^ 2 + 9 * 3 - 1 - 1",
+        9 + pow(2, 2) + 9 * 3 - 1 - 1, 
+        success
+    );
+    EXPECTED(
+        "9 + 2 ^ (2 + 9 * 3 - 1 - 1)",
+        9 + pow(2, 2 + 9 * 3 - 1 - 1),
+        success
+    );
+    EXPECTED(
+        "9 + 2 ^ (2 + 9 * (3 - 1) - 1)",
+        9 + pow(2, 2 + 9 * (3 - 1) - 1),
+        success
+    );
+    EXPECTED(
+        "0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))",
+        0.f / (3 - 1) + 9 * (pow(2, 1 + 1) + 3 * (3 * (1 - 1 + (3.f / 1)))),
+        success
+    );
+    EXPECTED(
+        "90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 ) ) ) ) )",
+        90 / (32.32f * pow(32, 3.f / 2.f)) + (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))),
+        success
+    );
+    EXPECTED(
+        "32 -(8 * -5 / 0.3 * (6 - 7) + -1) / 3.5 - -8",
+        32 - (8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8,
+        success
+    );
+    EXPECTED(
+        "43 * 3",
+        43 * 3,
+        success
+    );
+    EXPECTED(
+        "Ans + 1",
+        (43 * 3) + 1,
+        success
+    );
+    EXPECTED(
+        "3 * ans * (ans ^ -2 + 1.3)",
+        3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f),
+        success
+    );
+    EXPECTED(
+        "\\sqrt(42)",
+        sqrt(42),
+        success
+    );
+    EXPECTED(
+        "\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))",
+        sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))),
+        success
+    );
+    EXPECTED(
+        "\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))",
+        sqrt(30) / pow(tan(50.3), sin(43) / cos(44)),
+        success
+    );
     EXPECTED(
         "\\sqrt(\\sin(30) / 4.6 * (\\tan(30) / 30)) + 20 ^ 2 / 30 * (3 ^ 2 + 2)",
         sqrt(sin(30) / 4.6 * (tan(30) / 30)) + pow(20, 2) / 30 * (pow(3, 2) + 2),
-        success);
-    EXPECTED("\\max(3, 7)", Max(3, 7), success);
-    EXPECTED("\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
-             Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123)))), success);
-    EXPECTED("64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2",
-             64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2),
-             success);
+        success
+    );
+    EXPECTED(
+        "\\max(3, 7)",
+        Max(3, 7),
+        success
+    );
+    EXPECTED(
+        "\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
+        Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123)))),
+        success
+    );
+    EXPECTED(
+        "64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2",
+        64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2),
+        success
+    );
     long time2 = clock();
     double delta = (double)(time2 - time1) / CLOCKS_PER_SEC;
 
@@ -748,6 +895,7 @@ void test()
     else {
         printf("NOT ALL TESTS WERE SUCCESSFUL!\n");
     }
+
     printf("Executing all tests took %lf secs\n", delta); 
 }
 

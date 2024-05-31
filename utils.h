@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #define array_len(array) (sizeof(array) / sizeof((array)[0]))
 
@@ -103,9 +104,9 @@ typedef struct {
     size_t count;
 } List_Pool;
 
-#define list_pool_alloc(list_pool)                                             \
+#define list_pool_alloc(list_pool, pool_cap)                                   \
   do {                                                                         \
-    (list_pool).capacity = DEFAULT_LIST_CAP;                                   \
+    (list_pool).capacity = (pool_cap);                                         \
     (list_pool).items =                                                        \
         malloc((list_pool).capacity * sizeof(LIST_BLUE_PRINT));                \
     (list_pool).count = 0;                                                     \
@@ -124,16 +125,12 @@ typedef struct {
 
 #define list_pool_push(list_pool, item)                                        \
   do {                                                                         \
-    if ((list_pool).count >= (list_pool).capacity) {                           \
-      (list_pool).capacity *= 2;                                               \
-      (list_pool).items = realloc(                                             \
-          (list_pool).items, (list_pool).capacity * sizeof(LIST_BLUE_PRINT));  \
-    }                                                                          \
+    assert((list_pool).count < (list_pool).capacity);                          \
     void *the_item = &item;                                                    \
     (list_pool).items[(list_pool).count] = *(LIST_BLUE_PRINT *)the_item;       \
     (list_pool).count += 1;                                                    \
   } while (0)
 
-#define lp_at(list_pool, i, type) *(type*)((void*)(&list_pool.items[i]))
+#define lp_at(list_pool, i, type) (*(type*)((void*)(&list_pool.items[i])))
 
 #endif // _UTILS_H_

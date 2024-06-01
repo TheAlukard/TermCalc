@@ -1,4 +1,3 @@
-#include "utils.h"
 #include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
@@ -7,6 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#define LIST_IMPLEMENTATION
+#include "list.h"
 
 const char operators[] = "+-/*%^";
 #define operator_count ((sizeof(operators) / sizeof(operators[0])) - 1)

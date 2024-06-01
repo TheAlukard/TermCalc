@@ -1,5 +1,5 @@
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#ifndef _LIST_H_
+#define _LIST_H_
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,23 +38,7 @@
     (list).count += 1;                                                                 \
   } while (0)
 
-void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size) 
-{
-    void *popped = NULL; 
-
-    if (*list_count == 0) return popped;
-
-    if (*list_count < (*list_cap) / 3) {
-        *list_cap /= 2;
-        *list_items = realloc(*list_items, (*list_cap) * type_size);
-    }
-
-    *list_count -= 1;
-
-    popped = (uint8_t*)(*list_items) + ((*list_count) * type_size);
-
-    return popped;
-}
+void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size);
 
 #define list_pop(list, type) (*(type*)GET_POPPED((void*)(&(list).items), &(list).count, &(list).capacity, sizeof(type)))
 
@@ -140,4 +124,26 @@ typedef struct {
 
 #define lp_at(list_pool, i, type) (*(type*)((void*)(&list_pool.items[i])))
 
-#endif // _UTILS_H_
+#endif // _LIST_H_
+
+#ifdef LIST_IMPLEMENTATION
+
+void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size) 
+{
+    void *popped = NULL; 
+
+    if (*list_count == 0) return popped;
+
+    if (*list_count < (*list_cap) / 3) {
+        *list_cap /= 2;
+        *list_items = realloc(*list_items, (*list_cap) * type_size);
+    }
+
+    *list_count -= 1;
+
+    popped = (uint8_t*)(*list_items) + ((*list_count) * type_size);
+
+    return popped;
+}
+
+#endif // LIST_IMPLEMENTATION

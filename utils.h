@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 
@@ -37,19 +38,25 @@
     (list).count += 1;                                                                 \
   } while (0)
 
-#define list_pop(list, type) ({                                                         \
-    type popped;                                                                        \
-    if ((list).count > 0) {                                                             \
-      (list).count -= 1;                                                                \
-      popped = (list).items[(list).count];                                              \
-      memset(&((list).items[(list).count]), 0, sizeof(type) * 1);                       \
-      if ((list).count < (list).capacity / 3) {                                         \
-        (list).capacity /= 2;                                                           \
-        (list).items = realloc((list).items, (list).capacity * sizeof(*(list).items));  \
-      }                                                                                 \
-    }                                                                                   \
-    popped;                                                                             \
-})
+void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size) 
+{
+    void *popped = NULL; 
+
+    if (*list_count == 0) return popped;
+
+    if (*list_count < (*list_cap) / 3) {
+        *list_cap /= 2;
+        *list_items = realloc(*list_items, (*list_cap) * type_size);
+    }
+
+    *list_count -= 1;
+
+    popped = (uint8_t*)(*list_items) + ((*list_count) * type_size);
+
+    return popped;
+}
+
+#define list_pop(list, type) (*(type*)GET_POPPED((void*)(&(list).items), &(list).count, &(list).capacity, sizeof(type)))
 
 #define list_copy(dest, src, start, count)                                     \
   do {                                                                         \

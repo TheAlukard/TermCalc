@@ -271,7 +271,7 @@ String chop_paren(String *buffer)
 
 #define ESC_CHAR '\\'
 
-int get_func_param_count(MathFunc func) 
+INLINE int get_func_param_count(MathFunc func) 
 {
     switch (func) {
         case SQRT: // fall through

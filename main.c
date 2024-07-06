@@ -997,6 +997,7 @@ int main(int argc, char *argv[])
 
     while (true) {
         memset(buffer, 0, buffer_count * sizeof(char));
+        printf("> ");
         fgets(buffer, buffer_count, stdin);
 
         String str = {
@@ -1014,7 +1015,7 @@ int main(int argc, char *argv[])
             result = do_the_math(parser.math);
             ANS = result;
 
-            printf("%lf\n", result);
+            printf("= %lf\n", result);
         }
 
         list_clear(parser.math.num_list);

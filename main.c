@@ -56,12 +56,24 @@ typedef struct {
 } Stackc;
 
 typedef enum {
-    SQRT,
+    SQRT = 0,
     SIN,
     COS,
     TAN,
     MIN,
     MAX,
+    SINH,
+    COSH,
+    TANH,
+    ASIN,
+    ACOS,
+    ATAN,
+    ATAN2,
+    EXP,
+    LOG,
+    LOG10,
+    CEIL,
+    FLOOR,
     NOPE,
 } MathFunc;
 
@@ -274,14 +286,53 @@ String chop_paren(String *buffer)
 INLINE int get_func_param_count(MathFunc func) 
 {
     switch (func) {
-        case SQRT: // fall through
-        case SIN : // fall through
-        case COS : // fall through
-        case TAN : return 1;
-        case MIN : // fall through
-        case MAX : return 2;
+        case SQRT : // fall through
+        case SIN  : // fall through
+        case COS  : // fall through
+        case SINH : // fall through
+        case COSH : // fall through
+        case TANH : // fall through
+        case ASIN : // fall through
+        case ACOS : // fall through
+        case ATAN : // fall through
+        case EXP  : // fall through
+        case LOG  : // fall through
+        case LOG10: // fall through
+        case CEIL : // fall through
+        case FLOOR: // fall through
+        case TAN  : return 1;
+        case MIN  : // fall through
+        case ATAN2: // fall through
+        case MAX  : return 2;
         default  : return -1;
     }
+}
+
+bool chop_func_name(String *buffer, char *word)
+{
+    size_t i = 0;
+    String pos = *buffer;
+    size_t word_size = strlen(word);
+
+    trim_left(&pos);
+    while (pos.len > 0 && i < word_size) {
+        if (*pos.str != *word) {
+            return false;
+        }
+
+        word++;
+        i++;
+        chop_char_trim(&pos);
+    }
+
+    if (i != word_size || buffer->str[i] != '(') {
+        return false;
+    }
+
+    buffer->str = pos.str;
+    buffer->len = pos.len;
+
+    return true;
 }
 
 MathFunc chop_func(String *buffer) 
@@ -295,39 +346,38 @@ MathFunc chop_func(String *buffer)
         .len = buffer->len - 1,
     };
 
-    MathFunc func = NOPE;
-
     if (new_buff.len == 0) {
         return NOPE;
     }
 
-    switch (new_buff.str[0]) {
-        case 's':
-            if (chop_word(&new_buff, "sqrt", 4)) {
-                func = SQRT;
-            } 
-            else if (chop_word(&new_buff, "sin", 3)) {
-                func = SIN;
-            }
+    MathFunc func = NOPE;
+
+    char *func_names[NOPE] = {
+        "sqrt",
+        "sin",
+        "cos",
+        "tan",
+        "min",
+        "max",
+        "sinh",
+        "cosh",
+        "tanh",
+        "asin",
+        "acos",
+        "atan",
+        "atan2",
+        "exp",
+        "log",
+        "log10",
+        "ceil",
+        "floor",
+    };
+
+    for (size_t i = 0; i < NOPE; i++) {
+        if (chop_func_name(&new_buff, func_names[i])) {
+            func = i;
             break;
-        case 'c':
-            if (chop_word(&new_buff, "cos", 3)) {
-                func = COS;
-            }
-            break;
-        case 't':
-            if (chop_word(&new_buff, "tan", 3)) {
-                func = TAN;
-            }
-            break;
-        case 'm':
-            if (chop_word(&new_buff, "min", 3)) {
-                func = MIN;
-            } 
-            else if (chop_word(&new_buff, "max", 3)) {
-                func = MAX;
-            }
-            break;
+        }
     }
 
     if (func != NOPE) {
@@ -591,6 +641,30 @@ double parse_math_func(MathFunc func, Stackd *args)
             return Min(args->items[0], args->items[1]);
         case MAX:
             return Max(args->items[0], args->items[1]);
+        case SINH: 
+            return sinh(args->items[0]);
+        case COSH:
+            return cosh(args->items[0]);
+        case TANH:
+            return tanh(args->items[0]);
+        case ASIN:
+            return asin(args->items[0]);
+        case ACOS:
+            return acos(args->items[0]);
+        case ATAN:
+            return atan(args->items[0]);
+        case ATAN2:
+            return atan2(args->items[0], args->items[1]);
+        case EXP:
+            return exp(args->items[0]);
+        case LOG:
+            return log(args->items[0]);
+        case LOG10:
+            return log10(args->items[0]);
+        case CEIL:
+            return ceil(args->items[0]);
+        case FLOOR:
+            return floor(args->items[0]);
         default:
             return 0;
     }
@@ -650,8 +724,10 @@ bool expected(char *input, double expected_output)
 
     printf("{\n");
     printf("    Input   : %s\n", input);
-    double eps = 1e-5;
-    if (expected_output - output <= eps) {
+    double eps = 1e-3;
+    double diff = expected_output - output;
+    if (diff < 0) diff *= -1;
+    if (diff <= eps) {
         success = true;
     } 
     else {
@@ -670,7 +746,9 @@ bool expected(char *input, double expected_output)
     return success;
 }
 
-#define EXPECTED(expr, EXPECTED_OUTPUT, success)                               \
+bool success = true;
+
+#define EXPECTED(expr, EXPECTED_OUTPUT)                                        \
   do {                                                                         \
     char EXPR[] = expr;                                                        \
     if (!expected(EXPR, EXPECTED_OUTPUT)) {                                    \
@@ -680,215 +758,189 @@ bool expected(char *input, double expected_output)
 
 void test() 
 {
-    bool success = true;
     long time1 = clock();
 
     EXPECTED(
         "3 + 3",
-        6,
-        success
+        6
     );
     EXPECTED(
         "3 - 3",
-        0,
-        success
+        0
     );
     EXPECTED(
         "3 * 3",
-        9,
-        success
+        9
     );
     EXPECTED(
         "3 / 3",
-        1,
-        success
+        1
     );
     EXPECTED(
         "3 ^ 3",
-        27,
-        success
+        27
     );
     EXPECTED(
         "5 % 3",
-        2,
-        success
+        2
     );
     EXPECTED(
         "5 - -3",
-        8,
-        success
+        8
     );
     EXPECTED(
         "5 + -(2 * 3)",
-        -1,
-        success
+        -1
     );
     EXPECTED(
         "5 * -1",
-        -5,
-        success
+        -5
     );
     EXPECTED(
         "3 * 7 + 46 % 4",
-        23,
-        success
+        23
     );
     EXPECTED(
         "5 * 2 ^ 3 / 4 + 1 * 5",
-        15,
-        success
+        15
     );
     EXPECTED(
         "5 * 2 ^ 3 ^ 4 + 1 +  79",
-        20560,
-        success
+        20560
     );
     EXPECTED(
         "1 + 3 *  9",
-        28,
-        success
+        28
     );
     EXPECTED(
         "64 ^ 0 / 2 + 6",
-        6.5f,
-        success
+        6.5f
     );
     EXPECTED(
         "4 ^ 2 / 8 + 1",
-        3,
-        success
+        3
     );
     EXPECTED(
         "1 / 0.5 + 6",
-        8,
-        success
+        8
     );
     EXPECTED(
         "3 + 5 / 3 ^ 4 * 9 - 2 * 1",
-        1.55555555555556,
-        success
+        1.55555555555556
     );
     EXPECTED(
         "3 + 3 + 3 + 3 + 3 ^ 0 + 3",
-        16,
-        success
+        16
     );
     EXPECTED(
         "1 / 0.3 - 0.1 * 3 ^ 2",
-        2.43333333333333,
-        success
+        2.43333333333333
     );
     EXPECTED(
         "0 / 2 * 1",
-        0,
-        success
+        0
     );
     EXPECTED(
         "0/1*2",
-        0,
-        success
+        0
     );
     EXPECTED(
         "2 ^ 3 + 2",
-        10,
-        success
+        10
     );
     EXPECTED(
         "2 ^ (3 + 2)",
-        32,
-        success
+        32
     );
     EXPECTED(
         "9 / 3 - 2",
-        1,
-        success
+        1
     );
     EXPECTED(
         "9 / (3 - 2)",
-        9,
-        success
+        9
     );
     EXPECTED(
         "9 + 2 ^ 2 + 9 * 3 - 1 - 1",
-        9 + pow(2, 2) + 9 * 3 - 1 - 1, 
-        success
+        9 + pow(2, 2) + 9 * 3 - 1 - 1
     );
     EXPECTED(
         "9 + 2 ^ (2 + 9 * 3 - 1 - 1)",
-        9 + pow(2, 2 + 9 * 3 - 1 - 1),
-        success
+        9 + pow(2, 2 + 9 * 3 - 1 - 1)
     );
     EXPECTED(
         "9 + 2 ^ (2 + 9 * (3 - 1) - 1)",
-        9 + pow(2, 2 + 9 * (3 - 1) - 1),
-        success
+        9 + pow(2, 2 + 9 * (3 - 1) - 1)
     );
-
     EXPECTED(
         "0 / (3 - 1) + 9 * (2 ^ (1+1) + 3 * (3 * (1 - 1 + (3 / 1))))",
-        0.f / (3 - 1) + 9 * (pow(2, 1 + 1) + 3 * (3 * (1 - 1 + (3.f / 1)))),
-        success
+        0.f / (3 - 1) + 9 * (pow(2, 1 + 1) + 3 * (3 * (1 - 1 + (3.f / 1))))
     );
     EXPECTED(
         "90 / ( 32.32 * 32 ^ ( 3 / 2 ) ) + ( 3 * ( 32 % ( 4 ^ ( 2 * ( 1 + 1 ) ) ) ) )",
-        90 / (32.32f * pow(32, 3.f / 2.f)) + (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%'))),
-        success
+        90 / (32.32f * pow(32, 3.f / 2.f)) + (3 * (perform_operation(32.f, pow(4, 2 * (1 + 1)), '%')))
     );
     EXPECTED(
         "32 -(8 * -5 / 0.3 * (6 - 7) + -1) / 3.5 - -8",
-        32 - (8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8,
-        success
+        32 - (8 * -5 / 0.3f * (6 - 7) + -1) / 3.5 - -8
     );
     EXPECTED(
         "43 * 3",
-        43 * 3,
-        success
+        43 * 3
     );
     EXPECTED(
         "Ans + 1",
-        (43 * 3) + 1,
-        success
+        (43 * 3) + 1
     );
     EXPECTED(
         "3 * ans * (ans ^ -2 + 1.3)",
-        3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f),
-        success
+        3 * ((43 * 3) + 1) * (pow((43 * 3) + 1, -2) + 1.3f)
     );
     EXPECTED(
         "\\sqrt(42)",
-        sqrt(42),
-        success
+        sqrt(42)
     );
     EXPECTED(
         "\\sqrt(16) / 4 * (\\sqrt(4) + (27 - \\sqrt(9)))",
-        sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9))),
-        success
+        sqrt(16) / 4 * (sqrt(4) + (27 - sqrt(9)))
     );
     EXPECTED(
         "\\sqrt(30) / (\\tan(50.3) ^ (\\sin(43) / \\cos(44)))",
-        sqrt(30) / pow(tan(50.3), sin(43) / cos(44)),
-        success
+        sqrt(30) / pow(tan(50.3), sin(43) / cos(44))
     );
     EXPECTED(
         "\\sqrt(\\sin(30) / 4.6 * (\\tan(30) / 30)) + 20 ^ 2 / 30 * (3 ^ 2 + 2)",
-        sqrt(sin(30) / 4.6 * (tan(30) / 30)) + pow(20, 2) / 30 * (pow(3, 2) + 2),
-        success
+        sqrt(sin(30) / 4.6 * (tan(30) / 30)) + pow(20, 2) / 30 * (pow(3, 2) + 2)
     );
     EXPECTED(
         "\\max(3, 7)",
-        Max(3, 7),
-        success
+        Max(3, 7)
     );
     EXPECTED(
         "\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
-        Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123)))),
-        success
+        Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123))))
     );
     EXPECTED(
         "64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2",
-        64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2),
-        success
+        64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2)
     );
+    EXPECTED(
+        "\\log(100)",
+        log(100)
+    );
+    EXPECTED(
+        "\\sinh(193)",
+        sinh(193)
+    );
+    EXPECTED(
+        "\\log10(100)",
+        log10(100)
+    );
+    EXPECTED(
+        "\\asin(1) + \\acos(1)",
+        asin(1) + acos(1)
+    );
+
     long time2 = clock();
     double delta = (double)(time2 - time1) / CLOCKS_PER_SEC;
 

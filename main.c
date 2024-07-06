@@ -962,7 +962,7 @@ int main(int argc, char *argv[])
             result = do_the_math(parser.math);
             ANS = result;
 
-            printf("Result: %lf\n", result);
+            printf("%lf\n", result);
         }
 
         list_clear(parser.math.num_list);

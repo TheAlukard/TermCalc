@@ -92,6 +92,8 @@ static inline void trim_left(String *str);
 
 #define INLINE __attribute__((always_inline)) static inline
 
+#define PI 3.14159265358979323846f
+
 void print_math(const Math math) 
 {
     printf("Math:\n");
@@ -555,6 +557,15 @@ bool parse_input(String buffer, Math *output)
             isnum = true;
             list_push(output->num_list, ANS);
         } 
+        else if (c == 'p') {
+            bool success = chop_word(&buffer, "pi", 2);
+            if (!success) {
+                fprintf(stderr, "Error: Invalid input.\n");
+                return false;
+            }
+            isnum = true;
+            list_push(output->num_list, PI);
+        }
         else if (c == ESC_CHAR) {
             MathFunc func = chop_func(&buffer);
             if (func == NOPE) {

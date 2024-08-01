@@ -75,9 +75,9 @@ typedef enum {
     NOPE,
 } MathFunc;
 
-#define Max(one, two) ((one) > (two) ? (one) : (two))
+#define max(one, two) ((one) > (two) ? (one) : (two))
 
-#define Min(one, two) ((one) < (two) ? (one) : (two))
+#define min(one, two) ((one) < (two) ? (one) : (two))
 
 bool parse_input(String buffer, Math *output);
 void parse_expression(Parser *parser);
@@ -647,9 +647,9 @@ double parse_math_func(MathFunc func, Stackd *args)
         case TAN:
             return tan(args->items[0]);
         case MIN:
-            return Min(args->items[0], args->items[1]);
+            return min(args->items[0], args->items[1]);
         case MAX:
-            return Max(args->items[0], args->items[1]);
+            return max(args->items[0], args->items[1]);
         case SINH: 
             return sinh(args->items[0]);
         case COSH:
@@ -923,15 +923,15 @@ void test()
     );
     EXPECTED(
         "\\max(3, 7)",
-        Max(3, 7)
+        max(3, 7)
     );
     EXPECTED(
         "\\max(43, \\sqrt(\\min(3 ^ 2, \\max(\\tan(43 * 2), 123 ) ) ) )",
-        Max(43, sqrt(Min(pow(3, 3), Max(tan(43 * 2), 123))))
+        max(43, sqrt(min(pow(3, 3), max(tan(43 * 2), 123))))
     );
     EXPECTED(
         "64 / 3 / (32 - 31.3) * \\max(\\sqrt(3), \\min(3, 0.5)) - 6^2",
-        64.f / 3 / (32 - 31.3) * Max(sqrt(3), Min(3, 0.5)) - pow(6, 2)
+        64.f / 3 / (32 - 31.3) * max(sqrt(3), min(3, 0.5)) - pow(6, 2)
     );
     EXPECTED(
         "\\log(100)",

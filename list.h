@@ -38,7 +38,23 @@
     (list).count += 1;                                                                 \
   } while (0)
 
-void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size);
+static inline void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size) 
+{
+    void *popped = NULL; 
+
+    if (*list_count == 0) return popped;
+
+    if (*list_count < (*list_cap) / 3) {
+        *list_cap /= 2;
+        *list_items = realloc(*list_items, (*list_cap) * type_size);
+    }
+
+    *list_count -= 1;
+
+    popped = (uint8_t*)(*list_items) + ((*list_count) * type_size);
+
+    return popped;
+}
 
 #define list_pop(list, type) (*(type*)GET_POPPED((void*)(&(list).items), &(list).count, &(list).capacity, sizeof(type)))
 
@@ -83,67 +99,4 @@ void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t
 
 #define Unused(var) (void) (var)
 
-typedef struct {
-    void *items;
-    size_t capacity;
-    size_t count;
-} LIST_BLUE_PRINT;
-
-typedef struct {
-    LIST_BLUE_PRINT *items;
-    size_t capacity;
-    size_t count;
-} List_Pool;
-
-#define list_pool_alloc(list_pool, pool_cap)                                   \
-  do {                                                                         \
-    (list_pool).capacity = (pool_cap);                                         \
-    (list_pool).items =                                                        \
-        malloc((list_pool).capacity * sizeof(LIST_BLUE_PRINT));                \
-    (list_pool).count = 0;                                                     \
-  } while (0)
-
-#define list_pool_free(list_pool)                                              \
-  do {                                                                         \
-    for (size_t i = 0; i < (list_pool).count; i++) {                           \
-      list_free((list_pool).items[i]);                                         \
-    }                                                                          \
-    free((list_pool).items);                                                   \
-    (list_pool).items = NULL;                                                  \
-    (list_pool).capacity = 0;                                                  \
-    (list_pool).count = 0;                                                     \
-  } while (0)
-
-#define list_pool_push(list_pool, item)                                        \
-  do {                                                                         \
-    assert((list_pool).count < (list_pool).capacity);                          \
-    void *the_item = &item;                                                    \
-    (list_pool).items[(list_pool).count] = *(LIST_BLUE_PRINT *)the_item;       \
-    (list_pool).count += 1;                                                    \
-  } while (0)
-
-#define lp_at(list_pool, i, type) (*(type*)((void*)(&list_pool.items[i])))
-
 #endif // _LIST_H_
-
-#ifdef LIST_IMPLEMENTATION
-
-void* GET_POPPED(void* *list_items, size_t *list_count, size_t *list_cap, size_t type_size) 
-{
-    void *popped = NULL; 
-
-    if (*list_count == 0) return popped;
-
-    if (*list_count < (*list_cap) / 3) {
-        *list_cap /= 2;
-        *list_items = realloc(*list_items, (*list_cap) * type_size);
-    }
-
-    *list_count -= 1;
-
-    popped = (uint8_t*)(*list_items) + ((*list_count) * type_size);
-
-    return popped;
-}
-
-#endif // LIST_IMPLEMENTATION

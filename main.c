@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#define LIST_IMPLEMENTATION
 #include "list.h"
 
 const char operators[] = "+-/*%^";
@@ -972,7 +970,7 @@ char *chop_arg(int *argc, char *(**argv))
 
     char *arg = **argv;
     *argv += 1;
-    argc -= 1;
+    *argc -= 1;
 
     return arg;
 }

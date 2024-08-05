@@ -39,8 +39,6 @@
 ### And use them inside the expressions like this:
     $var_name
 
--The variables are currently immutable- 
-
 **Provide the 'test' flag if you want to run tests**
 
     ./TermCalc test

@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include "list.h"
+#include "strmap.h"
 
 const char operators[] = "+-/*%^";
 #define operator_count ((sizeof(operators) / sizeof(operators[0])) - 1)
@@ -125,6 +126,34 @@ INLINE bool str_contains(const char *str, size_t count, char item)
     return false;
 }
 
+INLINE bool str_equal(String one, String two)
+{
+    if (one.len != two.len) return false;
+
+    for (size_t i = 0; i < one.len; i++) {
+        if (*one.str != *two.str) return false;
+    }
+
+    return true;
+}
+
+INLINE bool is_alpha(char c) 
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c == '_');
+}
+
+INLINE bool is_digit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+INLINE bool is_alnum(char c)
+{
+    return is_alpha(c) || is_digit(c);
+}
+
 INLINE double perform_operation(double num1, double num2, char operation) 
 {
     switch (operation) {
@@ -221,7 +250,7 @@ bool chop_word(String *buffer, char *word, size_t word_size)
         chop_char_trim(&pos);
     }
 
-    if (i != word_size) {
+    if (i != word_size || is_alnum(buffer->str[i])) {
         return false;
     }
 
@@ -476,6 +505,34 @@ bool chop_func_params(String *buffer, MathFunc func, Stackd *output)
     return success;
 }
 
+
+String chop_var(String *buffer)
+{
+    String var = {0};
+
+    String pos = *buffer;
+
+    if (! isalpha(*buffer->str)) return var;
+
+    while (pos.len > 0 && is_alnum(*pos.str)) {
+        chop_char(&pos);
+    } 
+
+    var.str = buffer->str;
+    var.len = pos.str - buffer->str;
+
+    buffer->str = pos.str;
+    buffer->len = pos.len;
+
+    return var;
+}
+
+bool is_let = false;
+#define var_buff_cap 1000
+char var_buffer[var_buff_cap];
+char *var_ptr = var_buffer;
+StrMap var_map;
+
 bool parse_input(String buffer, Math *output) 
 {
     trim_left(&buffer);
@@ -499,7 +556,7 @@ bool parse_input(String buffer, Math *output)
 
     while (buffer.len > 0) {
         char c = *buffer.str;
-        if (isdigit(c)) {
+        if (is_digit(c)) {
             double num = chop_num(&buffer);
             isnum = true;
             if (negate) {
@@ -564,6 +621,93 @@ bool parse_input(String buffer, Math *output)
             isnum = true;
             list_push(output->num_list, PI);
         }
+        else if (c == 'l') {
+            if (! chop_word(&buffer, "let", 3)) {
+                fprintf(stderr, "Error: Invalid input.\n");
+                return false;
+            }
+
+            if (is_let) {
+                fprintf(stderr, "Error: Can declare variable only in beginning of the expression.\n");
+                return false;
+            }
+
+            String var = chop_var(&buffer);
+
+            if (var.str == NULL) {
+                fprintf(stderr, "Error: must put variable name after 'let'.\n");
+                return false;
+            }
+
+            if (var_ptr + var.len > &var_buffer[var_buff_cap]) {
+                fprintf(stderr, "Error: variable memory is full, can't delcare more variables.\n");
+                return false;
+            }
+
+            trim_left(&buffer);
+
+            if (*buffer.str != '=') {
+                fprintf(stderr, "Error: Must put '=' after variable name.\n");
+                return false;
+            }
+
+            chop_char_trim(&buffer);
+
+            Parser parser;
+            parser.expr = buffer;
+            list_alloc(parser.math.num_list);
+            list_alloc(parser.math.oper_list);
+            parse_input(parser.expr, &parser.math);
+
+            parse_expression(&parser);
+
+            double result = do_the_math(parser.math);
+
+            if (negate) {
+                result *= -1;
+                negate = false;
+            }
+
+            list_free(parser.math.num_list);
+            list_free(parser.math.oper_list);
+
+            strmap_add(&var_map, var_ptr, result);
+
+            for (size_t i = 0; i < var.len; i++, var_ptr++) {
+                *var_ptr = var.str[i];
+            }
+
+            *var_ptr = '\0';
+            var_ptr++;
+
+            is_let = true;
+        }
+        else if (c == '$') {
+            chop_char(&buffer);
+
+            String var = chop_var(&buffer);
+
+            if (var.str == NULL) {
+                fprintf(stderr, "Error: Invalid input.\n");
+                return false;
+            }
+
+            trim_left(&buffer);
+            
+            char temp[var.len + 1];
+            memcpy(temp, var.str, sizeof(char) * var.len);
+            temp[var.len] = '\0';
+
+            if (! strmap_has(&var_map, temp)) {
+                fprintf(stderr, "Error: Variable '%s' doesn't exist.\n", temp);
+                return false;
+            }
+
+            double result = strmap_get(&var_map, temp);
+
+            isnum = true;
+            list_push(output->num_list, result);
+        }
         else if (c == ESC_CHAR) {
             MathFunc func = chop_func(&buffer);
             if (func == NOPE) {
@@ -602,6 +746,7 @@ void parse_operations(Parser *parser, char *ops, size_t ops_count)
     Stackc oper_stack;
     list_alloc(num_stack);
     list_alloc(oper_stack);
+
     list_push(num_stack, parser->math.num_list.items[0]);
 
     size_t j = 1;
@@ -711,6 +856,7 @@ bool expected(char *input, double expected_output)
         .str = input,
         .len = strlen(input),
     };
+    is_let = false;
     parse_input(str, &parser.math);
 
 #if 0
@@ -742,8 +888,8 @@ bool expected(char *input, double expected_output)
     else {
         success = false;
     }
-    printf("    Output  : %lf\n", output);
-    printf("    Expected: %lf\n", expected_output);
+    printf("    Output  : %0.15lf\n", output);
+    printf("    Expected: %0.15lf\n", expected_output);
     if (success) {
         printf("    PASSED!\n");
     } 
@@ -990,6 +1136,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    var_map = strmap_new();
+
     if (Test) {
         test();
         return 0;
@@ -1016,6 +1164,7 @@ int main(int argc, char *argv[])
 
         parser.expr = str;
 
+        is_let = false;
         bool parsed = parse_input(str, &parser.math);
 
         if (parsed) {
@@ -1024,7 +1173,7 @@ int main(int argc, char *argv[])
             result = do_the_math(parser.math);
             ANS = result;
 
-            printf("= %lf\n", result);
+            printf("= %0.15lf\n", result);
         }
 
         list_clear(parser.math.num_list);
